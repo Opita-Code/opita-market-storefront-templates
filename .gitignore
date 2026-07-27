@@ -1,0 +1,29 @@
+# Node
+node_modules/
+.pnpm-store/
+
+# Repomix
+.repomix-cache/
+*.tmp-repomix
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Build outputs de cada plantilla (no las comitamos — vienen del submodule)
+templates/*/source/.next/
+templates/*/source/dist/
+templates/*/source/build/
+templates/*/source/node_modules/
+
+# Submodule dirs vacíos cuando no se ha hecho `git submodule update --init`
+templates/*/source/*
+
+# OS temp
+*~
+*.swp
+.DS_Store

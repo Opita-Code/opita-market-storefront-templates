@@ -1,0 +1,22 @@
+{
+  "name": "opita-market-storefront-templates",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Catálogo de plantillas frontend open-source, pre-empaquetadas como Agent Skills, listas para personalizar e integrar con el backend opita-market-templates.",
+  "license": "MIT",
+  "scripts": {
+    "repack": "./scripts/repack.sh",
+    "new:template": "./scripts/new-template.sh",
+    "validate": "./scripts/validate-skills.sh",
+    "validate:skills": "./scripts/validate-skills.sh"
+  },
+  "devDependencies": {
+    "repomix": "^1.8.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "workspaces": [
+    "templates/*/source"
+  ]
+}
