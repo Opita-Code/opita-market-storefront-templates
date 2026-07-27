@@ -3,6 +3,12 @@
 // =============================================================================
 // TypeScript tokens para componentes admin. Equivalentes a las CSS custom
 // properties de globals.css — usar este objeto en componentes sin Tailwind.
+//
+// LEGAL/CONTACT: viene de config/legal.ts (single source of truth compartido
+// con el theme override de ecommerce-storefront). Si necesitas cambiar teléfono,
+// hotline o citas legales, edita SOLO ese archivo.
+
+import { contact, LEGAL_COPY, LEGAL_VERSION } from "../../ecommerce-storefront/theme-overrides/pasiones-boutique-sensual/config/legal";
 
 export const pasionAdmin = {
   color: {
@@ -46,7 +52,7 @@ export const pasionAdmin = {
     },
     pos: {
       ageVerificationTitle: "Verificación de mayoría de edad",
-      ageVerificationBody: "Antes de procesar la venta, confirma que verificaste el documento de identidad del cliente y que es mayor de 18 años (Ley 679/2001, art. 4).",
+      ageVerificationBody: "Antes de procesar la venta, confirma que verificaste el documento de identidad del cliente y que es mayor de 18 años (Constitución Política art. 44, Ley 679 de 2001 art. 2°).",
       ageVerificationCheckbox: "Verifiqué documento de identidad del cliente (mayor de 18 años)",
       saleBlocked: "Debes verificar la edad del cliente para procesar la venta.",
       verifiedBadge: "Venta verificada +18",
@@ -55,12 +61,15 @@ export const pasionAdmin = {
     receipt: {
       legalName: "Pasiones Boutique Sensual S.A.S.",
       taxId: "NIT [por confirmar con contadora]",
-      ageNotice: "Venta exclusiva a mayores de 18 años · Ley 1336/2009",
-      address: "Mall [redacted], Neiva — Huila, Colombia",
-      phone: "+57 318 610 7314",
-      email: "contacto@pasiones.example.co",
+      // ageNotice viene de LEGAL_COPY (single source)
+      ageNotice: LEGAL_COPY["es-CO"].ageFull,
+      address: contact.address,
+      phone: contact.phone,
+      whatsapp: contact.whatsapp,
+      email: contact.email,
       thanks: "¡Gracias por tu compra!",
       disclaimer: "Empaque discreto garantizado. En tu extracto bancario aparecerá como PB*PASIONES SAS.",
+      legalVersion: LEGAL_VERSION,
     },
   },
 } as const;

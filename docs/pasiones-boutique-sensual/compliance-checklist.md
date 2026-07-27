@@ -6,12 +6,13 @@ Checklist completo de cumplimiento legal para el go-live de Pasiones. **Todos lo
 
 | Norma | Año | Aplica a | Tema clave |
 |---|---|---|---|
-| Ley 679 | 2001 | Cualquier sitio web que comercialice productos sexuales en Colombia | Verificación de mayoría de edad |
-| Decreto 1524 | 1996 | Establecimientos que comercialicen productos sexuales | Regulación de la actividad |
-| Ley 1336 | 2009 | Todos los establecimientos sexuales | Aviso visible +18 + protección menores |
+| Ley 679 | 2001 | Cualquier sitio web que comercialice productos sexuales en Colombia | Verificación de mayoría de edad. **Art. 2°** define menor = < 18 años. |
+| Constitución Política | 1991 | Toda la actividad comercial | **Art. 44** derechos fundamentales de los niños (prevalencia) |
+| Ley 1336 | 2009 | Adiciona y robustece Ley 679 | Fortalece el aviso obligatorio +18 |
 | Ley 1581 | 2012 | Cualquier entidad que trate datos personales en Colombia | Habeas Data |
 | Decreto 1377 | 2013 | Tratamiento de datos personales | Reglamenta Ley 1581 |
-| Ley 2300 | 2023 | Derecho al olvido + empaquetado discreto | Discreción comercial |
+| Ley 2300 | 2023 | Intimidad del consumidor | Opt-in comunicaciones comerciales (marketing) |
+| Decreto 1524 | 1996 | Establecimientos que comercialicen productos sexuales | Regulación de la actividad (registro MinCIT) |
 
 ## Pre-go-live — BLOQUEANTE
 
@@ -45,7 +46,7 @@ Checklist completo de cumplimiento legal para el go-live de Pasiones. **Todos lo
 - [ ] Componentes compliance copiados a `src/components/`:
   - [ ] `AgeGate` (Ley 679/2001)
   - [ ] `HabeasDataBanner` (Ley 1581/2012)
-  - [ ] `LegalDisclaimer` (Ley 1336/2009)
+  - [ ] `LegalDisclaimer` (Constitución art. 44 + Ley 679/2001 art. 2°)
   - [ ] `DiscreteBillingNotice` (descriptor Wompi)
 - [ ] `<AgeGate>` montado en `src/app/layout.tsx` (raíz, antes de cualquier contenido)
 - [ ] `<HabeasDataBanner>` montado en el layout con props del tenant config
@@ -82,9 +83,9 @@ Checklist completo de cumplimiento legal para el go-live de Pasiones. **Todos lo
   - [ ] Link a política completa funciona
   - [ ] Versión se valida contra `consent_text_version`
 - [ ] **Legal Disclaimer** en footer de TODAS las páginas
-  - [ ] Texto: "Venta exclusiva a mayores de 18 años. Ley 1336 de 2009."
+  - [ ] Texto: "Venta exclusiva a mayores de 18 años. Constitución Política art. 44 y Ley 679 de 2001 art. 2°." (texto OSINT-corregido; la cita previa a "Ley 1336/2009 art. 4" era imprecisa — ese artículo trata sobre café internet)
   - [ ] Link a /habeas-data funcional
-  - [ ] Teléfono de reporte de explotación sexual visible: 018000-91-99-99
+  - [ ] **Línea oficial ICBF `01 8000 91 80 80`** (L-V 8am-5pm) y `Línea 141` (emergencia) visibles. ⚠️ La línea previa "018000-91-99-99" NO es oficial — OSINT en icbf.gov.co.
 - [ ] **Discrete Billing Notice** antes del botón de pago
   - [ ] Descriptor exacto visible: "PB*PASIONES SAS"
   - [ ] Checkbox obligatorio para habilitar botón
@@ -111,7 +112,7 @@ Checklist completo de cumplimiento legal para el go-live de Pasiones. **Todos lo
 
 ### Datos de contacto
 
-- [ ] WhatsApp 318 610 7314 funcional y con respuesta
+- [ ] WhatsApp **+57 315 444 5992** funcional y con respuesta
 - [ ] Email `contacto@pasiones.example.co` con autorespuesta inmediata
 - [ ] Email `habeas_data@pasiones.example.co` para solicitudes Ley 1581/2012
 - [ ] Dirección física pública (Mall [redacted], Neiva — Huila)
@@ -164,7 +165,10 @@ Checklist completo de cumplimiento legal para el go-live de Pasiones. **Todos lo
 
 ## Canales de reporte
 
-- **Línea nacional contra explotación sexual de menores**: 018000-91-99-99 (visible en LegalDisclaimer)
+- **Línea oficial ICBF** (Instituto Colombiano de Bienestar Familiar):
+  - `01 8000 91 80 80` — Línea gratuita nacional (L-V 8am-5pm) — visible en LegalDisclaimer
+  - `Línea 141` — Nacional para protección, emergencia y orientación (24/7)
+  - ⚠️ El número "018000-91-99-99" que aparecía en versiones anteriores de este documento **NO es la línea oficial del ICBF** — fue corregido vía OSINT en `icbf.gov.co` el 2026-07-27.
 - **Superintendencia de Industria y Comercio (SIC)**: para quejas Ley 1581/2012
 - **Alcaldía de Neiva**: para quejas sobre operación comercial
 
@@ -182,9 +186,12 @@ Una vez firmado, deploy procederá.
 ## Referencias
 
 - `theme-overrides/pasiones-boutique-sensual/components/compliance/` — implementación UI
-- `theme-overrides/pasiones-boutique-sensual/lib/brand.ts` — copy oficial
+- `theme-overrides/pasiones-boutique-sensual/config/legal.ts` — **única fuente de verdad** para contact (teléfono, email), legal (citas, hotlines ICBF) y copy legal multi-idioma
+- `theme-overrides/pasiones-boutique-sensual/lib/brand.ts` — re-exporta `LEGAL_COPY` desde `config/legal.ts`
 - `admin-tailadmin/theme-overrides/pasiones-boutique-sensual/docs/pos-age-verification-flow.md` — flujo POS
 - `integration/src/i18n/locales.ts` — keys i18n (age_gate.*, legal_disclaimer.*, pos.age_verification.*)
+- Constitución Política art. 44: https://www.constitucioncolombia.com/titulo-2/capitulo-2/articulo-44
 - Ley 679/2001: https://www.funcionpublica.gov.co/eva/gestornormativo/norma.php?i=18309
-- Ley 1336/2009: https://www.suin-juriscol.gov.co/
-- Ley 1581/2012: https://www.suin-juriscol.gov.co/
+- Ley 1336/2009: https://www.funcionpublica.gov.co/eva/gestornormativo/norma.php?i=36877
+- Ley 1581/2012: https://www.funcionpublica.gov.co/eva/gestornormativo/norma.php?i=49981
+- ICBF: https://www.icbf.gov.co/atencion-y-servicios-ciudadania

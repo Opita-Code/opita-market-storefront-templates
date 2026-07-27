@@ -15,7 +15,7 @@ Identidad visual oficial del tenant `pasiones` (Pasiones Boutique Sensual S.A.S.
 - Empaque 100% discreto (sin logo exterior, etiqueta neutra)
 - Descriptor bancario discreto (PB*PASIONES SAS)
 - Línea Curvy con tallas extendidas (XS a XXL)
-- Asesoría vía WhatsApp (318 610 7314)
+- Asesoría vía WhatsApp (+57 315 444 5992)
 - Único en la región con verificación visible de mayoría de edad
 
 ## Identidad visual
@@ -115,7 +115,7 @@ Variantes aprobadas:
 | **Hook** | Primera frase que engancha | "La sensualidad no tiene talla" |
 | **Beneficio** | Qué gana el cliente | "Empaque discreto, entrega donde tú nos digas" |
 | **Especificación** | Detalles técnicos | "Conjunto encaje bordelés · talla XL · forro de algodón" |
-| **Legal** | Cumplimiento | "Venta exclusiva a mayores de 18 años · Ley 1336/2009" |
+| **Legal** | Cumplimiento | "Venta exclusiva a mayores de 18 años · Constitución art. 44 + Ley 679/2001 art. 2°" |
 
 ## Aplicaciones visuales
 
@@ -232,7 +232,7 @@ Antes de cualquier cambio visual al sitio de producción, validar:
 - [ ] Imágenes siguen el estilo aprobado (modelos成年, look natural)
 - [ ] Categorías usan los labels oficiales
 - [ ] Edad +18 se mantiene visible en TODAS las páginas
-- [ ] Disclaimer Ley 1336/2009 está en footer
+- [ ] Disclaimer Constitución art. 44 + Ley 679/2001 art. 2° está en footer
 
 Si algún punto falla, **NO desplegar**. Escalar al propietario.
 

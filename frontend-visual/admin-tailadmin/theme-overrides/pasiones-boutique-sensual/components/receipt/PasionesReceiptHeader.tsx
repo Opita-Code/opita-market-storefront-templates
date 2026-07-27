@@ -6,7 +6,7 @@
  * El recibo es documento legal — debe incluir:
  *   - Razón social + NIT (DIAN)
  *   - Dirección + contacto
- *   - Aviso "Venta exclusiva a mayores de 18 años · Ley 1336/2009"
+ *   - Aviso "Venta exclusiva a mayores de 18 años · Constitución art. 44 + Ley 679/2001 art. 2°"
  *   - Aviso discreto de empaque y descriptor bancario
  *
  * En impresión térmica (80mm), se ajusta a fontSize pequeños.

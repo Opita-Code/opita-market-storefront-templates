@@ -16,7 +16,7 @@ Customización visual de **admin-tailadmin** (TailAdmin / free-nextjs-admin-dash
 | Tablas de datos | ❌ Default | Densidad de información > estética |
 | Botones primarios | ✅ Hot pink | Coherencia con storefront |
 | POS — flujo de venta | ✅ Banner de verificación de edad | Cumplimiento Ley 679/2001 art. 4 |
-| POS — recibo | ✅ Header Pasiones + aviso Ley 1336/2009 | Marca en papel + cumplimiento |
+| POS — recibo | ✅ Header Pasiones + aviso Constitución art. 44 + Ley 679/2001 | Marca en papel + cumplimiento |
 | Audit log | ❌ Default | Información técnica, no decorativa |
 
 ## Estructura

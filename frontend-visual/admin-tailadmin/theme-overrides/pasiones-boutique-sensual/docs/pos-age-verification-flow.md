@@ -2,9 +2,13 @@
 
 ## Contexto legal
 
-**Ley 679 de 2001 art. 4** establece que los establecimientos que comercializan productos sexuales deben **verificar la mayoría de edad** de los compradores al momento de la venta. La verificación debe hacerse mediante documento de identidad válido.
+**Constitución Política art. 44** establece la prevalencia de los derechos fundamentales de los niños sobre los demás.
 
-**Ley 1336 de 2009** refuerza esta obligación y exige que el aviso "Venta exclusiva a mayores de 18 años" sea **visible** en el local y en cualquier material publicitario o transaccional.
+**Ley 679 de 2001 art. 2°** define que "menor de edad es la persona que no ha cumplido los dieciocho años". La ley establece la obligación de **verificar la mayoría de edad** de los compradores al momento de la venta de productos sexuales, mediante documento de identidad válido.
+
+**Ley 1336 de 2009** adiciona y robustece la Ley 679, reforzando que el aviso "Venta exclusiva a mayores de 18 años" sea **visible** en el local y en cualquier material publicitario o transaccional.
+
+> ⚠️ **OSINT 2026-07-27:** Una versión anterior de este documento citaba "Ley 679/2001 art. 4" como base de la verificación. El artículo 4 de la Ley 679/2001 en realidad crea una *Comisión de Expertos* del ICBF; la obligación de verificación de edad se deriva de los artículos 1° (objeto) y 2° (definición de menor) en conjunto con la Ley 1336/2009. Texto corregido.
 
 ## Estado del flujo en Sprint 7+
 

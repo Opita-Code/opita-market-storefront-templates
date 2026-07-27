@@ -3,7 +3,10 @@
 /**
  * AgeGate — Verificación de mayoría de edad.
  *
- * Ley 679 de 2001 (Colombia) + Decreto 1524 de 1996.
+ * Marco normativo verificado vía OSINT:
+ *   - Constitución Política art. 44 (derechos fundamentales de los niños)
+ *   - Ley 679 de 2001 art. 2° ("menor de edad la persona que no ha cumplido los dieciocho años")
+ *   - Ley 1336 de 2009 (adiciona y robustece Ley 679/2001; refuerza el aviso obligatorio)
  *
  * Comportamiento:
  *   - Primera visita: muestra modal full-screen, BLOQUEA el resto del sitio
@@ -22,15 +25,16 @@
  *   - role="dialog" aria-modal="true" aria-labelledby="age-gate-title"
  *   - focus trap (tab loop)
  *   - Esc NO cierra — debe clickear o tabular al botón
- *   - Textos en es-CO primario, en-US/pt-BR via prop locale
+ *   - Textos multi-idioma desde config/legal.ts (es-CO/en-US/pt-BR)
  */
 
 import { useEffect, useRef, useState } from "react";
 import { pasion } from "../../lib/brand";
+import { LEGAL_COPY, LEGAL_VERSION, type Locale } from "../../config/legal";
 
 export interface AgeGateProps {
   /** Locale para textos (default "es-CO") */
-  locale?: "es-CO" | "en-US" | "pt-BR";
+  locale?: Locale;
   /** URL externa para redirigir si el usuario NO es mayor (default: Google) */
   exitUrl?: string;
   /** Duración del cookie en días (default 30) */
@@ -41,35 +45,9 @@ export interface AgeGateProps {
   onVerified?: () => void;
 }
 
-const COPY = {
-  "es-CO": {
-    title: "Bienvenida a Pasiones Boutique Sensual",
-    body: "Este sitio ofrece productos para adultos. Por ley (Colombia, Ley 679 de 2001), necesitamos confirmar que eres mayor de 18 años antes de mostrarte nuestro catálogo.",
-    confirm: "Sí, soy mayor de 18",
-    leave: "No, salir del sitio",
-    remember: "Recordar mi elección por 30 días",
-    legalNote: "Al continuar declaras bajo gravedad de juramento que eres mayor de edad. Ley 1336 de 2009.",
-  },
-  "en-US": {
-    title: "Welcome to Pasiones Boutique Sensual",
-    body: "This site sells adult products. By law (Colombia, Law 679 of 2001), we need to confirm you are over 18 before showing our catalog.",
-    confirm: "Yes, I am over 18",
-    leave: "No, leave this site",
-    remember: "Remember my choice for 30 days",
-    legalNote: "By continuing you declare under oath that you are of legal age. Law 1336 of 2009.",
-  },
-  "pt-BR": {
-    title: "Bem-vindo à Pasiones Boutique Sensual",
-    body: "Este site vende produtos adultos. Por lei (Colômbia, Lei 679 de 2001), precisamos confirmar que você é maior de 18 anos antes de mostrar nosso catálogo.",
-    confirm: "Sim, sou maior de 18",
-    leave: "Não, sair do site",
-    remember: "Lembrar minha escolha por 30 dias",
-    legalNote: "Ao continuar, você declara sob juramento que é maior de idade. Lei 1336 de 2009.",
-  },
-};
-
 const COOKIE_NAME = "pasiones-age-verified";
-const COOKIE_VERSION = "v1"; // bump si cambia la política → re-verifica
+// Cookie version tied to LEGAL_VERSION — bump junto con config/legal.ts
+const COOKIE_VERSION = LEGAL_VERSION;
 
 export function AgeGate({
   locale = "es-CO",
@@ -82,7 +60,7 @@ export function AgeGate({
   const [remember, setRemember] = useState(true);
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
-  const t = COPY[locale];
+  const t = LEGAL_COPY[locale] ?? LEGAL_COPY["es-CO"];
 
   // Decidir si mostrar el modal al montar
   useEffect(() => {
@@ -169,7 +147,7 @@ export function AgeGate({
   };
 
   const handleLeave = () => {
-    // Registrar declinación (cumplimiento Ley 1336/2009)
+    // Registrar declinación (cumplimiento Ley 679/2001 + Ley 1336/2009 + Const. art. 44)
     try {
       const declination = {
         event: "age_verification_declined",

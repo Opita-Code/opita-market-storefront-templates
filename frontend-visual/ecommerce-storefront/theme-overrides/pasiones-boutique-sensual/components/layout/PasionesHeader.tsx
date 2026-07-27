@@ -19,20 +19,23 @@ import { useEffect, useState } from "react";
 import { pasion } from "../../lib/brand";
 import { BunnyLogo } from "../icons/BunnyLogo";
 import { PasionesWordmark } from "../icons/PasionesWordmark";
+import { LEGAL_COPY, type Locale } from "../../config/legal";
 
 export interface PasionesHeaderProps {
-  locale?: "es-CO" | "en-US" | "pt-BR";
+  locale?: Locale;
   cartItemCount?: number;
   wishlistItemCount?: number;
   onCartClick?: () => void;
   onWishlistClick?: () => void;
-  onLocaleChange?: (locale: "es-CO" | "en-US" | "pt-BR") => void;
+  onLocaleChange?: (locale: Locale) => void;
 }
 
+// TOPBAR text — incluye el teléfono oficial del cliente (config/legal.ts).
+// Cambiar el teléfono en config/legal.ts se refleja automáticamente en los 3 locales.
 const TOPBAR_COPY = {
-  "es-CO": "Envío discreto a todo Colombia · Línea de atención 318 610 7314",
-  "en-US": "Discrete shipping across Colombia · Support 318 610 7314",
-  "pt-BR": "Envio discreto para toda Colômbia · Atendimento 318 610 7314",
+  "es-CO": LEGAL_COPY["es-CO"].topbarText,
+  "en-US": LEGAL_COPY["en-US"].topbarText,
+  "pt-BR": LEGAL_COPY["pt-BR"].topbarText,
 };
 
 const NAV_ITEMS = [

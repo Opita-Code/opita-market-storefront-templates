@@ -7,7 +7,7 @@
  *   - Newsletter signup (3 columnas en desktop, apilado en mobile)
  *   - Links principales (categorías + soporte + legal)
  *   - Datos de contacto (dirección, horario, WhatsApp)
- *   - LegalDisclaimer (Ley 1336/2009) — OBLIGATORIO
+ *   - LegalDisclaimer (Constitución art. 44 + Ley 679/2001 art. 2°) — OBLIGATORIO
  *   - Copyright + powered-by
  */
 

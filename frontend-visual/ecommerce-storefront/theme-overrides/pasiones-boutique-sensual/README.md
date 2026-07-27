@@ -91,7 +91,7 @@ Y en `globals.css` (ya incluido), el theme override referencia `--font-script`, 
 |---|---|---|
 | `AgeGate` | **Ley 679/2001** + Decreto 1524/1996 | `src/app/layout.tsx` (raíz, antes de cualquier contenido) |
 | `HabeasDataBanner` | Ley 1581/2012 | Header inferior + página `/habeas-data` |
-| `LegalDisclaimer` | Ley 1336/2009 | Footer (todas las páginas) |
+| `LegalDisclaimer` | Constitución art. 44 + Ley 679/2001 art. 2° | Footer (todas las páginas) |
 | `DiscreteBillingNotice` | Wompi / card networks | Página de checkout, antes del botón "Pagar" |
 
 Si cualquiera de estos falta, **NO desplegar a producción**. El owner de la marca debe validar con abogada antes del primer go-live.

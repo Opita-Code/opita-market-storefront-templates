@@ -10,7 +10,7 @@
  *
  * Compliance:
  *   - Ley 679/2001 art. 4 — la verificación de edad es obligatoria
- *   - Ley 1336/2009 — el aviso debe ser visible
+ *   - Ley 1336/2009 — refuerza el aviso obligatorio +18
  *
  * Visual:
  *   - Verde oscuro cuando verificada

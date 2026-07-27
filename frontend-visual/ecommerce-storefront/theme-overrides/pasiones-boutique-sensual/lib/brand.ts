@@ -12,7 +12,13 @@
 //   #D4AF37 = oklch(0.78 0.13 75)    — gold (línea premium)
 //   #6B1A3A = oklch(0.34 0.13 5)     — wine (dark mode)
 //   #E91E63 = oklch(0.55 0.24 354)   — lips
+//
+// LEGAL/CONTACT: data legal/compliance/contacto viene de config/legal.ts
+// (single source of truth). Si necesitas cambiar teléfono, hotline o citas
+// legales, edita SOLO config/legal.ts.
 // =============================================================================
+
+import { contact, LEGAL_COPY, LEGAL_VERSION, type Locale } from "../config/legal";
 
 export const pasion = {
   color: {
@@ -143,31 +149,40 @@ export const pasion = {
       regalos_aniversario: "Aniversario",
     },
     legal: {
-      ageDisclaimer: "Venta exclusiva a mayores de 18 años",
+      // Deprecated: prefer LEGAL_COPY from config/legal.ts.
+      // Mantenemos estas keys para no romper consumidores antiguos.
+      ageDisclaimer: LEGAL_COPY["es-CO"].ageDisclaimer,
       ageModalTitle: "Bienvenida a Pasiones",
       ageModalBody:
         "Este sitio ofrece productos para adultos. Para continuar, confirma que eres mayor de 18 años.",
-      ageConfirm: "Sí, soy mayor de 18",
+      ageConfirm: LEGAL_COPY["es-CO"].ageConfirmationLabel,
       ageLeave: "No, salir del sitio",
       discreteNotice: "En tu extracto bancario aparecerá como PB*PASIONES SAS",
       giftWrapping: "Empaque de regalo disponible",
-      contactPhone: "Contáctanos 318 610 7314",
+      contactPhone: `Contáctanos ${contact.phone}`,
     },
   },
 
   // Metadata de la tienda — para SEO + OG
   meta: {
     legalName: "Pasiones Boutique Sensual S.A.S.",
-    phone: "+57 318 610 7314",
-    email: "contacto@pasiones.example.co",
-    emailHabeasData: "habeas_data@pasiones.example.co",
-    address: "Mall [redacted], Neiva — Huila, Colombia",
+    phone: contact.phone,
+    whatsapp: contact.whatsapp,
+    whatsappHref: contact.whatsappHref,
+    email: contact.email,
+    emailHabeasData: contact.habeasEmail,
+    emailPrivacy: contact.privacyEmail,
+    address: contact.address,
     schedule: "L-V 10:00–20:00 · S 10:00–21:00 · D 12:00–18:00",
     social: {
       instagram: "@pasionesboutiquesensual",
-      whatsapp: "+57 318 610 7314",
+      whatsapp: contact.whatsapp,
     },
   },
 } as const;
+
+// Re-export para que consumidores puedan importar todo desde un solo lugar
+export { contact, LEGAL_COPY, LEGAL_VERSION } from "../config/legal";
+export type { Locale } from "../config/legal";
 
 export type PasionBrand = typeof pasion;

@@ -1,52 +1,39 @@
 "use client";
 
 /**
- * LegalDisclaimer — disclaimer permanente en footer (Ley 1336/2009).
+ * LegalDisclaimer — disclaimer permanente en footer.
  *
- * "Venta exclusiva a mayores de 18 años" debe aparecer en TODAS las
- * páginas del sitio. Es la exigencia de la Ley 1336 de 2009 (art. 4)
- * para cualquier establecimiento que comercialice productos sexuales.
+ * Marco normativo colombiano verificado vía OSINT:
+ *   - Constitución Política art. 44 (derechos fundamentales de los niños)
+ *   - Ley 679 de 2001 art. 2° (definición de menor de edad = < 18 años)
+ *   - Ley 1336 de 2009 (adiciona y robustece Ley 679)
+ *   - Ley 1581 de 2012 (Habeas Data)
  *
- * Implementación:
- *   - Componente pequeño, va en `PasionesFooter`
- *   - Texto bilingüe (es-CO + en-US) para turistas en Neiva
- *   - Link a página /habeas-data + /contacto + advertencia explícita
+ * Texto, hotline, contact phone: importados de config/legal.ts (single source).
+ * Si necesitas cambiar hotline o teléfono, edita SOLO config/legal.ts.
  */
 
 import { pasion } from "../../lib/brand";
+import {
+  LEGAL_COPY,
+  LEGAL_VERSION,
+  legal,
+  SUPPORTED_LOCALES,
+  type Locale,
+} from "../../config/legal";
 
 export interface LegalDisclaimerProps {
-  locale?: "es-CO" | "en-US" | "pt-BR";
-  /** Versión del texto legal (cambia cuando se actualiza la política) */
+  locale?: Locale;
+  /** Versión del texto legal (default: LEGAL_VERSION de config/legal.ts) */
   version?: string;
 }
 
-const COPY = {
-  "es-CO": {
-    text: "Venta exclusiva a mayores de 18 años. Ley 1336 de 2009.",
-    habeasData: "Política de tratamiento de datos personales (Ley 1581/2012)",
-    report: "Reportar explotación sexual de menores:",
-    hotline: "Línea 018000-91-99-99",
-  },
-  "en-US": {
-    text: "Adults only (18+). Law 1336 of 2009.",
-    habeasData: "Personal data processing policy (Law 1581/2012)",
-    report: "Report child sexual exploitation:",
-    hotline: "Hotline 018000-91-99-99",
-  },
-  "pt-BR": {
-    text: "Venda exclusiva para maiores de 18 anos. Lei 1336 de 2009.",
-    habeasData: "Política de tratamento de dados pessoais (Lei 1581/2012)",
-    report: "Denunciar exploração sexual de menores:",
-    hotline: "Linha 018000-91-99-99",
-  },
-};
-
 export function LegalDisclaimer({
   locale = "es-CO",
-  version = "2026-07-27.2",
+  version,
 }: LegalDisclaimerProps) {
-  const t = COPY[locale];
+  const t = LEGAL_COPY[locale] ?? LEGAL_COPY["es-CO"];
+  const effectiveVersion = version ?? LEGAL_VERSION;
 
   return (
     <div
@@ -68,7 +55,7 @@ export function LegalDisclaimer({
           textAlign: "center",
         }}
       >
-        ⚠ {t.text}
+        ⚠ {t.ageFull}
       </p>
 
       <div
@@ -84,25 +71,25 @@ export function LegalDisclaimer({
           href="/habeas-data"
           style={{ color: pasion.color.cyan, textDecoration: "underline" }}
         >
-          {t.habeasData}
+          {t.habeasLink}
         </a>
 
         <span aria-hidden style={{ color: pasion.color.textMuted }}>·</span>
 
         <span style={{ color: pasion.color.textMuted }}>
-          {t.report}{" "}
+          {t.reportMinorsLabel}{" "}
           <a
-            href="tel:018000919999"
+            href={legal.icbfHotlines.mainHref}
             style={{ color: pasion.color.hot, fontWeight: pasion.weight.bodyBold }}
           >
-            {t.hotline}
+            {t.hotlineLabel} {t.hotlineTel}
           </a>
         </span>
 
         <span aria-hidden style={{ color: pasion.color.textMuted }}>·</span>
 
         <span style={{ color: pasion.color.textMuted, opacity: 0.7 }}>
-          v{version}
+          v{effectiveVersion}
         </span>
       </div>
     </div>
@@ -110,3 +97,7 @@ export function LegalDisclaimer({
 }
 
 export default LegalDisclaimer;
+
+// Re-export locales para consumidores
+export { SUPPORTED_LOCALES };
+export type { Locale };
