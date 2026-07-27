@@ -1,0 +1,751 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "opita-market-templates API",
+    "description": "Multi-tenant retail commerce backend. Deployed per-tenant on AWS Lambda + DynamoDB via SST.\n\nSee SKILL.md in this directory for the full endpoint map, sprint mapping, and consumption guidance. The TypeScript integration package at ../integration/ wraps this contract in a typed SDK.",
+    "version": "6.0.0",
+    "contact": {
+      "name": "Opita Code",
+      "url": "https://github.com/Opita-Code/opita-market-templates"
+    }
+  },
+  "servers": [
+    { "url": "https://market.opitacode.com", "description": "Production (Pasiones tenant deployed at /tenants/pasiones)" },
+    { "url": "http://localhost:3001", "description": "Local dev (sst dev)" }
+  ],
+  "tags": [
+    { "name": "Health", "description": "Liveness probe (public)" },
+    { "name": "Catalog", "description": "Public product/variant/branch read endpoints" },
+    { "name": "Stock", "description": "Public stock read + admin stock write" },
+    { "name": "Cart", "description": "Customer cart + Habeas Data consent (cliente role)" },
+    { "name": "Orders", "description": "Order lifecycle + Wompi payment (cliente role)" },
+    { "name": "POS", "description": "In-store sales + refunds (vendedor role)" },
+    { "name": "Admin", "description": "Catalog + branch write (admin role)" },
+    { "name": "Audit", "description": "Audit log queries (auditor + admin)" },
+    { "name": "Compliance", "description": "Habeas Data status lookup (auditor + admin)" },
+    { "name": "Reports", "description": "Daily sales + journal summary (admin)" },
+    { "name": "Checkout", "description": "PUBLIC — checkout config (Habeas Data texts, currency, TTLs)" },
+    { "name": "Webhooks", "description": "Wompi inbound (HMAC-verified)" },
+    { "name": "Session", "description": "Me + refresh" }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Liveness probe",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" },
+                    "stack": { "type": "string" },
+                    "tenantId": { "type": "string" },
+                    "version": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tenants/{tenantId}/catalog/products": {
+      "get": {
+        "tags": ["Catalog"],
+        "summary": "List products (public, paginated)",
+        "security": [],
+        "parameters": [
+          { "$ref": "#/components/parameters/TenantId" },
+          { "name": "categoryId", "in": "query", "schema": { "type": "string" } },
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["active", "inactive"], "default": "active" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 } },
+          { "name": "cursor", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": { "type": "array", "items": { "$ref": "#/components/schemas/Product" } },
+                    "nextCursor": { "type": ["string", "null"] }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/tenants/{tenantId}/catalog/products/{productId}": {
+      "get": {
+        "tags": ["Catalog"],
+        "summary": "Get product by id",
+        "security": [],
+        "parameters": [
+          { "$ref": "#/components/parameters/TenantId" },
+          { "name": "productId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Product" } } } },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/tenants/{tenantId}/catalog/products/{productId}/variants": {
+      "get": {
+        "tags": ["Catalog"],
+        "summary": "List variants for a product",
+        "security": [],
+        "parameters": [
+          { "$ref": "#/components/parameters/TenantId" },
+          { "name": "productId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 50 } },
+          { "name": "cursor", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "type": "object", "properties": { "items": { "type": "array", "items": { "$ref": "#/components/schemas/Variant" } }, "nextCursor": { "type": ["string", "null"] } } } } } }
+        }
+      }
+    },
+    "/tenants/{tenantId}/catalog/branches": {
+      "get": {
+        "tags": ["Catalog"],
+        "summary": "List branches",
+        "security": [],
+        "parameters": [
+          { "$ref": "#/components/parameters/TenantId" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 } },
+          { "name": "cursor", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "type": "object", "properties": { "items": { "type": "array", "items": { "$ref": "#/components/schemas/Branch" } }, "nextCursor": { "type": ["string", "null"] } } } } } }
+        }
+      }
+    },
+    "/tenants/{tenantId}/stock": {
+      "get": {
+        "tags": ["Stock"],
+        "summary": "List stock entries (public, filterable)",
+        "security": [],
+        "parameters": [
+          { "$ref": "#/components/parameters/TenantId" },
+          { "name": "variantId", "in": "query", "schema": { "type": "string" } },
+          { "name": "branchId", "in": "query", "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 } },
+          { "name": "cursor", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "type": "object", "properties": { "items": { "type": "array", "items": { "$ref": "#/components/schemas/StockEntry" } }, "nextCursor": { "type": ["string", "null"] } } } } } }
+        }
+      }
+    },
+    "/tenants/{tenantId}/checkout/config": {
+      "get": {
+        "tags": ["Checkout"],
+        "summary": "PUBLIC checkout config (Habeas Data texts, currency, TTLs, Wompi refund policy)",
+        "security": [],
+        "parameters": [{ "$ref": "#/components/parameters/TenantId" }],
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CheckoutConfig" } } } }
+        }
+      }
+    },
+    "/tenants/{tenantId}/cart": {
+      "post": {
+        "tags": ["Cart"],
+        "summary": "Create cart (cliente)",
+        "security": [{ "ocaisBearer": [], "tenantHeader": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/TenantId" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["branchId"],
+                "properties": { "branchId": { "type": "string" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Cart" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/tenants/{tenantId}/cart/{cartId}/items": {
+      "post": {
+        "tags": ["Cart"],
+        "summary": "Add item to cart",
+        "security": [{ "ocaisBearer": [], "tenantHeader": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/TenantId" },
+          { "name": "cartId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["variantId", "quantity"],
+                "properties": {
+                  "variantId": { "type": "string" },
+                  "quantity": { "type": "integer", "minimum": 1 },
+                  "expectedStockVersion": { "type": "integer", "minimum": 0, "description": "Optimistic concurrency" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Cart" } } } },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/tenants/{tenantId}/cart/{cartId}/reserve": {
+      "post": {
+        "tags": ["Cart"],
+        "summary": "Reserve stock (15-min TTL)",
+        "security": [{ "ocaisBearer": [], "tenantHeader": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/TenantId" },
+          { "name": "cartId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Reserved", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Cart" } } } },
+          "409": { "description": "Insufficient stock" }
+        }
+      }
+    },
+    "/tenants/{tenantId}/cart/{cartId}/habeas-data": {
+      "post": {
+        "tags": ["Cart"],
+        "summary": "Capture Habeas Data consent (Ley 1581/2012)",
+        "security": [{ "ocaisBearer": [], "tenantHeader": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/TenantId" },
+          { "name": "cartId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["accepted", "policyVersion"],
+                "properties": {
+                  "accepted": { "type": "boolean" },
+                  "policyVersion": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}\\.\\d+$" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Consent recorded" },
+          "409": { "description": "Policy version mismatch — client must refetch /checkout/config" }
+        }
+      }
+    },
+    "/tenants/{tenantId}/checkout": {
+      "post": {
+        "tags": ["Orders"],
+        "summary": "Convert cart → order (cliente). Returns wompi checkoutUrl.",
+        "security": [{ "ocaisBearer": [], "tenantHeader": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/TenantId" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["cartId", "customerEmail"],
+                "properties": {
+                  "cartId": { "type": "string" },
+                  "customerEmail": { "type": "string", "format": "email" },
+                  "customerFullName": { "type": ["string", "null"] },
+                  "customerPhone": { "type": ["string", "null"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Order" } } } },
+          "412": { "description": "Habeas Data consent missing or policy version mismatch" }
+        }
+      }
+    },
+    "/tenants/{tenantId}/orders": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "List orders for current customer (cliente) or all (admin)",
+        "security": [{ "ocaisBearer": [], "tenantHeader": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/TenantId" },
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["pending-payment", "paid", "ready-for-pickup", "completed", "cancelled", "refunded"] } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 } },
+          { "name": "cursor", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "type": "object", "properties": { "items": { "type": "array", "items": { "$ref": "#/components/schemas/Order" } }, "nextCursor": { "type": ["string", "null"] } } } } } }
+        }
+      }
+    },
+    "/tenants/{tenantId}/orders/{orderId}/refund": {
+      "post": {
+        "tags": ["Orders"],
+        "summary": "Refund order (cliente or admin)",
+        "security": [{ "ocaisBearer": [], "tenantHeader": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/TenantId" },
+          { "name": "orderId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["reason"],
+                "properties": {
+                  "reason": { "type": "string", "minLength": 3, "maxLength": 500 },
+                  "refundLines": { "type": "array", "description": "Partial refund; omit for full", "items": { "type": "object", "required": ["variantId", "quantity"], "properties": { "variantId": { "type": "string" }, "quantity": { "type": "integer", "minimum": 1 } } } },
+                  "notes": { "type": ["string", "null"], "maxLength": 1000 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Refunded", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Order" } } } },
+          "409": { "description": "Order not in refundable state (must be paid|ready-for-pickup|completed)" }
+        }
+      }
+    },
+    "/tenants/{tenantId}/pos/sales": {
+      "post": {
+        "tags": ["POS"],
+        "summary": "Create in-store sale (vendedor)",
+        "security": [{ "ocaisBearer": [], "tenantHeader": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/TenantId" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["branchId", "paymentMethod", "lines"],
+                "properties": {
+                  "branchId": { "type": "string" },
+                  "paymentMethod": { "type": "string", "enum": ["cash", "card", "transfer"] },
+                  "lines": { "type": "array", "items": { "type": "object", "required": ["variantId", "quantity"], "properties": { "variantId": { "type": "string" }, "quantity": { "type": "integer", "minimum": 1 } } } },
+                  "expectedVersion": { "type": "integer", "description": "Optimistic concurrency for each variant's stock" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Sale created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Sale" } } } },
+          "409": { "description": "Stock version mismatch" }
+        }
+      }
+    },
+    "/tenants/{tenantId}/pos/sales/{saleId}/refund": {
+      "post": {
+        "tags": ["POS"],
+        "summary": "Refund in-store sale (vendedor)",
+        "security": [{ "ocaisBearer": [], "tenantHeader": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/TenantId" },
+          { "name": "saleId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["reason"],
+                "properties": {
+                  "reason": { "type": "string" },
+                  "refundLines": { "type": "array", "items": { "type": "object", "required": ["variantId", "quantity"], "properties": { "variantId": { "type": "string" }, "quantity": { "type": "integer", "minimum": 1 } } } },
+                  "notes": { "type": ["string", "null"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Refunded", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Sale" } } } },
+          "409": { "description": "Sale not in refundable state (must be completed)" }
+        }
+      }
+    },
+    "/tenants/{tenantId}/admin/audit": {
+      "get": {
+        "tags": ["Audit"],
+        "summary": "Query audit log (auditor or admin)",
+        "security": [{ "ocaisBearer": [], "tenantHeader": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/TenantId" },
+          { "name": "actorEmail", "in": "query", "schema": { "type": "string", "format": "email" } },
+          { "name": "action", "in": "query", "schema": { "type": "string" } },
+          { "name": "targetType", "in": "query", "schema": { "type": "string" } },
+          { "name": "targetId", "in": "query", "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 200, "default": 50 } },
+          { "name": "cursor", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "type": "object", "properties": { "items": { "type": "array", "items": { "$ref": "#/components/schemas/AuditLog" } }, "nextCursor": { "type": ["string", "null"] } } } } } }
+        }
+      }
+    },
+    "/tenants/{tenantId}/admin/reports/daily": {
+      "get": {
+        "tags": ["Reports"],
+        "summary": "Daily report (admin)",
+        "security": [{ "ocaisBearer": [], "tenantHeader": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/TenantId" },
+          { "name": "date", "in": "query", "required": true, "schema": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" } }
+        ],
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DailyReport" } } } },
+          "400": { "description": "future_date or invalid format" }
+        }
+      }
+    },
+    "/tenants/{tenantId}/admin/customers/{customerId}/habeas-data": {
+      "get": {
+        "tags": ["Compliance"],
+        "summary": "Get Habeas Data consent status + policy version match (auditor or admin)",
+        "security": [{ "ocaisBearer": [], "tenantHeader": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/TenantId" },
+          { "name": "customerId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "customerId": { "type": "string" },
+                    "email": { "type": "string" },
+                    "habeasDataConsent": { "$ref": "#/components/schemas/HabeasDataConsent" },
+                    "currentPolicyVersion": { "type": "string" },
+                    "policyVersionMatched": { "type": "boolean" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tenants/{tenantId}/webhooks/wompi": {
+      "post": {
+        "tags": ["Webhooks"],
+        "summary": "Wompi inbound webhook (HMAC-verified, no JWT)",
+        "security": [],
+        "parameters": [{ "$ref": "#/components/parameters/TenantId" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["event", "data", "signature"],
+                "properties": {
+                  "event": { "type": "string", "example": "transaction.updated" },
+                  "data": { "type": "object", "additionalProperties": true },
+                  "signature": { "type": "object", "properties": { "properties": { "type": "array", "items": { "type": "string" } }, "checksum": { "type": "string" } } }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Processed" },
+          "401": { "description": "Invalid HMAC signature" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ocaisBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "OCAIS-issued JWT. The 'aud' claim must match the tenant audience; the 'sub' claim is the user subject."
+      },
+      "tenantHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Tenant-Id",
+        "description": "Tenant identifier (must match path :tenantId)"
+      }
+    },
+    "parameters": {
+      "TenantId": {
+        "name": "tenantId",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$" },
+        "description": "Tenant identifier (kebab-case, e.g. 'pasiones')"
+      }
+    },
+    "responses": {
+      "BadRequest": { "description": "Validation failed", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "Unauthorized": { "description": "Missing or invalid OCAIS token", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "Forbidden": { "description": "Role/permission denied", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "NotFound": { "description": "Resource not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "Conflict": { "description": "Optimistic concurrency conflict", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+    },
+    "schemas": {
+      "Product": {
+        "type": "object",
+        "required": ["id", "tenantId", "sku", "name", "priceAmount", "currency", "status", "createdAt"],
+        "properties": {
+          "id": { "type": "string" },
+          "tenantId": { "type": "string" },
+          "sku": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": ["string", "null"] },
+          "imageUrl": { "type": ["string", "null"] },
+          "priceAmount": { "type": "integer", "minimum": 0 },
+          "currency": { "type": "string", "enum": ["COP", "USD", "BRL"] },
+          "categoryId": { "type": ["string", "null"] },
+          "status": { "type": "string", "enum": ["active", "inactive"] },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "version": { "type": "integer" }
+        }
+      },
+      "Variant": {
+        "type": "object",
+        "required": ["id", "tenantId", "productId", "sku", "priceAmount", "currency", "status", "createdAt"],
+        "properties": {
+          "id": { "type": "string" },
+          "tenantId": { "type": "string" },
+          "productId": { "type": "string" },
+          "sku": { "type": "string" },
+          "name": { "type": ["string", "null"] },
+          "priceAmount": { "type": "integer" },
+          "currency": { "type": "string", "enum": ["COP", "USD", "BRL"] },
+          "barcode": { "type": ["string", "null"] },
+          "status": { "type": "string", "enum": ["active", "inactive"] },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "version": { "type": "integer" }
+        }
+      },
+      "Branch": {
+        "type": "object",
+        "required": ["id", "tenantId", "name", "address", "timezone", "status", "createdAt"],
+        "properties": {
+          "id": { "type": "string" },
+          "tenantId": { "type": "string" },
+          "name": { "type": "string" },
+          "address": { "type": "string" },
+          "city": { "type": ["string", "null"] },
+          "phone": { "type": ["string", "null"] },
+          "timezone": { "type": "string" },
+          "status": { "type": "string", "enum": ["active", "inactive"] },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "StockEntry": {
+        "type": "object",
+        "required": ["id", "tenantId", "variantId", "branchId", "quantity", "reserved", "version"],
+        "properties": {
+          "id": { "type": "string" },
+          "tenantId": { "type": "string" },
+          "variantId": { "type": "string" },
+          "branchId": { "type": "string" },
+          "quantity": { "type": "integer", "minimum": 0 },
+          "reserved": { "type": "integer", "minimum": 0 },
+          "version": { "type": "integer" }
+        }
+      },
+      "Cart": {
+        "type": "object",
+        "required": ["id", "tenantId", "customerId", "branchId", "status", "items", "createdAt", "expiresAt"],
+        "properties": {
+          "id": { "type": "string" },
+          "tenantId": { "type": "string" },
+          "customerId": { "type": "string" },
+          "branchId": { "type": "string" },
+          "status": { "type": "string", "enum": ["active", "reserved", "expired", "converted"] },
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/CartItem" } },
+          "subtotalAmount": { "type": "integer" },
+          "currency": { "type": "string", "enum": ["COP", "USD", "BRL"] },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "expiresAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "CartItem": {
+        "type": "object",
+        "required": ["id", "variantId", "quantity", "unitPriceAmount"],
+        "properties": {
+          "id": { "type": "string" },
+          "variantId": { "type": "string" },
+          "quantity": { "type": "integer", "minimum": 1 },
+          "unitPriceAmount": { "type": "integer" }
+        }
+      },
+      "Sale": {
+        "type": "object",
+        "required": ["id", "tenantId", "branchId", "lines", "totalAmount", "currency", "status", "createdAt"],
+        "properties": {
+          "id": { "type": "string" },
+          "tenantId": { "type": "string" },
+          "branchId": { "type": "string" },
+          "orderId": { "type": ["string", "null"] },
+          "lines": { "type": "array", "items": { "$ref": "#/components/schemas/SaleLine" } },
+          "totalAmount": { "type": "integer" },
+          "currency": { "type": "string", "enum": ["COP", "USD", "BRL"] },
+          "paymentMethod": { "type": ["string", "null"], "enum": ["cash", "card", "transfer", "wompi", null] },
+          "paymentRef": { "type": ["string", "null"] },
+          "status": { "type": "string", "enum": ["draft", "completed", "voided", "refunded"] },
+          "refundReason": { "type": ["string", "null"] },
+          "refundedAt": { "type": ["string", "null"], "format": "date-time" },
+          "refundedBy": { "type": ["string", "null"] },
+          "refundsJournalEntryIds": { "type": "array", "items": { "type": "string" } },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "version": { "type": "integer" }
+        }
+      },
+      "SaleLine": {
+        "type": "object",
+        "required": ["variantId", "quantity", "unitPriceAmount"],
+        "properties": {
+          "variantId": { "type": "string" },
+          "quantity": { "type": "integer", "minimum": 1 },
+          "unitPriceAmount": { "type": "integer" }
+        }
+      },
+      "Order": {
+        "type": "object",
+        "required": ["id", "tenantId", "customerId", "branchId", "lines", "totalAmount", "currency", "status", "createdAt"],
+        "properties": {
+          "id": { "type": "string" },
+          "tenantId": { "type": "string" },
+          "customerId": { "type": "string" },
+          "branchId": { "type": "string" },
+          "lines": { "type": "array", "items": { "$ref": "#/components/schemas/SaleLine" } },
+          "subtotalAmount": { "type": "integer" },
+          "taxAmount": { "type": "integer" },
+          "totalAmount": { "type": "integer" },
+          "currency": { "type": "string", "enum": ["COP", "USD", "BRL"] },
+          "status": { "type": "string", "enum": ["pending-payment", "paid", "ready-for-pickup", "completed", "cancelled", "refunded"] },
+          "wompiTransactionId": { "type": ["string", "null"] },
+          "checkoutUrl": { "type": ["string", "null"], "format": "uri" },
+          "habeasDataConsent": { "$ref": "#/components/schemas/HabeasDataConsent" },
+          "refundReason": { "type": ["string", "null"] },
+          "refundedAt": { "type": ["string", "null"], "format": "date-time" },
+          "refundedBy": { "type": ["string", "null"] },
+          "saleId": { "type": ["string", "null"] },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "version": { "type": "integer" }
+        }
+      },
+      "Customer": {
+        "type": "object",
+        "required": ["id", "tenantId", "email", "createdAt"],
+        "properties": {
+          "id": { "type": "string" },
+          "tenantId": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "fullName": { "type": ["string", "null"] },
+          "phone": { "type": ["string", "null"] },
+          "habeasDataConsent": { "$ref": "#/components/schemas/HabeasDataConsent" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "HabeasDataConsent": {
+        "type": "object",
+        "required": ["consentedAt", "policyVersion"],
+        "properties": {
+          "consentedAt": { "type": "string", "format": "date-time" },
+          "policyVersion": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}\\.\\d+$" },
+          "policyUrl": { "type": ["string", "null"], "format": "uri" },
+          "ipAddress": { "type": ["string", "null"] },
+          "userAgent": { "type": ["string", "null"] }
+        }
+      },
+      "AuditLog": {
+        "type": "object",
+        "required": ["id", "tenantId", "actorEmail", "action", "createdAt", "expiresAtEpochSeconds"],
+        "properties": {
+          "id": { "type": "string" },
+          "tenantId": { "type": "string" },
+          "actorEmail": { "type": "string", "format": "email" },
+          "actorSubject": { "type": ["string", "null"] },
+          "action": { "type": "string" },
+          "targetType": { "type": "string" },
+          "targetId": { "type": ["string", "null"] },
+          "ipAddress": { "type": ["string", "null"] },
+          "userAgent": { "type": ["string", "null"] },
+          "requestId": { "type": ["string", "null"] },
+          "metadata": { "type": ["object", "null"], "additionalProperties": true },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "expiresAtEpochSeconds": { "type": "integer" }
+        }
+      },
+      "CheckoutConfig": {
+        "type": "object",
+        "required": ["currency", "reservationTtlMinutes", "checkoutTtlMinutes", "habeasDataPolicyUrl", "habeasDataPolicyVersion", "wompiRefundPolicy"],
+        "properties": {
+          "currency": { "type": "string", "enum": ["COP", "USD", "BRL"] },
+          "reservationTtlMinutes": { "type": "integer" },
+          "checkoutTtlMinutes": { "type": "integer" },
+          "habeasDataPolicyUrl": { "type": "string", "format": "uri" },
+          "habeasDataPolicyVersion": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}\\.\\d+$" },
+          "consentTexts": { "type": "object", "properties": { "es": { "type": "string" }, "en": { "type": ["string", "null"] }, "pt": { "type": ["string", "null"] }, "version": { "type": "string" } } },
+          "wompiRefundPolicy": { "type": "string", "enum": ["external", "automatic"] }
+        }
+      },
+      "DailyReport": {
+        "type": "object",
+        "required": ["date", "sales", "journalEntries", "refunds"],
+        "properties": {
+          "date": { "type": "string" },
+          "sales": { "type": "object" },
+          "journalEntries": { "type": "object" },
+          "refunds": { "type": "object" }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": ["code", "message"],
+            "properties": {
+              "code": { "type": "string" },
+              "message": { "type": "string" },
+              "details": { "type": "object", "additionalProperties": true }
+            }
+          }
+        }
+      }
+    }
+  }
+}

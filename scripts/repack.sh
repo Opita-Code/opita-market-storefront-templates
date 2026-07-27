@@ -1,93 +1,50 @@
 #!/usr/bin/env bash
+# scripts/repack.sh — regenerates repomix.txt for each visual template
+# Run weekly via GitHub Action or manually:
+#   bash scripts/repack.sh [template-name]
 #
-# scripts/repack.sh — Regenera repomix.txt para todas las plantillas (o una).
-#
-# Uso:
-#   ./scripts/repack.sh                 # todas las plantillas
-#   ./scripts/repack.sh templates/admin-tailadmin   # solo una
-#
-# Requiere: npx (incluido con Node.js >= 16) y acceso a internet para
-# descargar repomix via npm.
-#
-# El compressed repomix.txt es lo que los AI agents leen cuando necesitan
-# entender el código fuente completo de una plantilla sin clonar el submodule.
-#
+# If no template-name is given, repacks all templates.
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$REPO_ROOT"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+VISUAL_DIR="$ROOT_DIR/frontend-visual"
 
-# 1. Determinar targets
-if [ "$#" -eq 0 ]; then
-  # Todas las plantillas que tengan source/ inicializado
-  TARGETS=$(find templates -mindepth 2 -maxdepth 2 -type d -name source | sort)
-else
-  # Targets explícitos
-  TARGETS=""
-  for arg in "$@"; do
-    if [ -d "$arg/source" ]; then
-      TARGETS="$TARGETS $arg/source"
-    else
-      echo "ERROR: $arg/source no existe. ¿Corriste 'git submodule update --init'?"
-      exit 1
-    fi
-  done
-fi
+# Default ignore list — same as the old config but tightened for new repo
+IGNORE_PATTERN='**/node_modules/**,**/.next/**,**/dist/**,**/build/**,**/.git/**,**/.cache/**,**/coverage/**,**/.turbo/**,**/.vercel/**,**/.DS_Store,**/*.log,**/yarn.lock,**/pnpm-lock.yaml,**/package-lock.json,**/banner.png,**/next-env.d.ts'
 
-if [ -z "$TARGETS" ]; then
-  echo "No hay templates con source/ inicializado."
-  echo "Corre primero: git submodule update --init --recursive"
-  exit 1
-fi
+repack_template() {
+  local name="$1"
+  local source_dir="$VISUAL_DIR/$name/source"
+  local output="$VISUAL_DIR/$name/repomix.txt"
 
-# 2. Detectar nombre de plantilla desde el path
-pack_template() {
-  local source_dir="$1"
-  local template_path
-  template_path=$(dirname "$source_dir")  # templates/<name>
-  local template_name
-  template_name=$(basename "$template_path")
-  local output_file="$template_path/repomix.txt"
+  if [[ ! -d "$source_dir" ]]; then
+    echo "[skip] $name — source/ not initialized (run: git submodule update --init frontend-visual/$name/source)"
+    return 0
+  fi
 
-  echo "→ Repacking $template_name → $output_file"
-
-  # npx invoca repomix sin requerir instalación global.
-  # --style plain: output en texto plano (más token-efficient que XML).
-  # --include "**/*": incluye todos los archivos.
-  # --ignore: excluye dependencias, builds, dotfiles, configs no esenciales.
+  echo "[repack] $name → repomix.txt"
+  cd "$ROOT_DIR"
   npx --yes repomix \
     --style plain \
-    --output "$output_file" \
+    --output "$output" \
     --include "**/*" \
-    --ignore "**/node_modules/**,**/.next/**,**/dist/**,**/build/**,**/.git/**,**/.cache/**,**/coverage/**,**/.turbo/**,**/.vercel/**,**/.DS_Store,**/*.log,**/yarn.lock,**/pnpm-lock.yaml,**/package-lock.json" \
-    "$source_dir" 2>&1 | tail -5
+    --ignore "$IGNORE_PATTERN" \
+    "$source_dir" 2>&1 | tail -3
 
-  # 3. Stats post-pack
-  if [ -f "$output_file" ]; then
-    local size_kb=$(du -k "$output_file" | cut -f1)
-    local line_count=$(wc -l < "$output_file")
-    echo "  ✓ $output_file — ${size_kb}KB / ${line_count} lines"
-  else
-    echo "  ✗ ERROR: repomix no generó el archivo"
-    exit 1
+  if [[ -f "$output" ]]; then
+    local size
+    size=$(stat -c %s "$output" 2>/dev/null || stat -f %z "$output" 2>/dev/null || echo "?")
+    echo "  → $size bytes"
   fi
 }
 
-# 4. Ejecutar para cada target
-echo "Repacking $(echo "$TARGETS" | wc -w) templates..."
-echo ""
-
-for source_dir in $TARGETS; do
-  pack_template "$source_dir"
-  echo ""
-done
-
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "✓ All repomix.txt files regenerated"
-echo ""
-echo "Next steps:"
-echo "  1. Review the diff:           git diff templates/*/repomix.txt"
-echo "  2. Run skill validator:       ./scripts/validate-skills.sh"
-echo "  3. Commit if changes look ok: git add templates/*/repomix.txt && git commit"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+if [[ $# -eq 0 ]]; then
+  for dir in "$VISUAL_DIR"/*/; do
+    if [[ -d "$dir" ]]; then
+      repack_template "$(basename "$dir")"
+    fi
+  done
+else
+  repack_template "$1"
+fi

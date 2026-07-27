@@ -1,22 +1,25 @@
 {
   "name": "opita-market-storefront-templates",
-  "version": "0.1.0",
+  "version": "0.0.1",
+  "description": "3-template monorepo for Opita Code storefront development. Layers: backend reference (OpenAPI), integration (framework-agnostic TS SDK), frontend-visual (4 open-source templates). All 3 layers are Agent Skills.",
   "private": true,
-  "description": "Catálogo de plantillas frontend open-source, pre-empaquetadas como Agent Skills, listas para personalizar e integrar con el backend opita-market-templates.",
-  "license": "MIT",
+  "type": "module",
+  "workspaces": [
+    "integration"
+  ],
   "scripts": {
-    "repack": "./scripts/repack.sh",
-    "new:template": "./scripts/new-template.sh",
-    "validate": "./scripts/validate-skills.sh",
-    "validate:skills": "./scripts/validate-skills.sh"
+    "validate": "bash scripts/validate-skills.sh",
+    "repack": "bash scripts/repack.sh",
+    "build:integration": "bash scripts/build-integration.sh",
+    "test:integration": "cd integration && pnpm test",
+    "typecheck:integration": "cd integration && pnpm typecheck",
+    "test:all": "pnpm typecheck:integration && pnpm test:integration && pnpm validate"
   },
   "devDependencies": {
     "repomix": "^1.8.0"
   },
   "engines": {
-    "node": ">=20.0.0"
-  },
-  "workspaces": [
-    "templates/*/source"
-  ]
+    "node": ">=20",
+    "pnpm": ">=9"
+  }
 }

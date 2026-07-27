@@ -1,236 +1,216 @@
-# Brand customization — tokens, theming, multi-tenant branding
+# Brand Customization — per-client theming
 
-> Cómo personalizar las plantillas para que cada tenant tenga su propia
-> identidad visual, sin perder la consistencia del sistema de diseño.
+Each client (Pasiones, Peluquería XYZ, etc.) has its own brand. The visual templates are MIT/open-source upstreams — we override their defaults to match the client's brand without modifying the upstream source.
 
-## 1. Tokens mínimos viables (Tailwind CSS)
+## Why customize without forking?
 
-Todas las plantillas usan **Tailwind CSS v3+**. La forma estándar de customizar branding es extender la paleta `brand` en `tailwind.config.ts`:
+Each visual template is a **git submodule**. If we modify `source/`, we'd lose the ability to pull upstream updates. So all customization happens in `theme-overrides/<client>/`.
 
-```ts
-// tailwind.config.ts
-import type { Config } from "tailwindcss";
+```
+frontend-visual/ecommerce-storefront/
+├── source/                  ← git submodule (TailAdmin upstream — DON'T MODIFY)
+├── SKILL.md                 ← visual skill (pages, palette, props)
+├── THEME.md                 ← this customization guide
+├── INSTALL.md
+├── theme-overrides/         ← per-client theme tokens
+│   ├── pasiones/            ← Pasiones brand
+│   │   ├── tokens.css       ← CSS variables (colors, fonts, spacing)
+│   │   ├── logo.svg         ← Logo
+│   │   ├── og-image.png     ← Open Graph image
+│   │   └── manifest.json    ← PWA manifest
+│   └── peluqueria-xyz/      ← Peluquería brand (future)
+└── repomix.txt
+```
 
-const config: Config = {
-  content: ["./src/**/*.{ts,tsx}"],
-  darkMode: "class",
+## Tokens (CSS variables)
+
+The simplest way to customize is via CSS variables. Each visual template has its own variable names — check the template's docs. The integration package provides the brand-agnostic values (currency, dates) but the visual layer applies them.
+
+For TailAdmin (used by `admin-tailadmin`), override the Tailwind theme:
+
+```css
+/* theme-overrides/pasiones/tokens.css */
+:root {
+  --brand-primary: #C2185B;       /* Pasiones magenta */
+  --brand-secondary: #FFC107;     /* Pasiones gold */
+  --brand-accent: #F8BBD0;
+  --font-display: 'Playfair Display', serif;
+  --font-body: 'Inter', sans-serif;
+  --color-bg: #FFF8F1;
+  --color-text: #2D2D2D;
+  --color-success: #2E7D32;
+  --color-warning: #F57C00;
+  --color-error: #C62828;
+}
+
+[data-theme="dark"] {
+  --color-bg: #1A1A1A;
+  --color-text: #F5F5F5;
+}
+```
+
+## Tailwind config (when applicable)
+
+```js
+// tailwind.config.js (in client app, not in source/)
+import pasionesTokens from './theme-overrides/pasiones/tokens.json'
+
+export default {
   theme: {
     extend: {
       colors: {
-        // PRIMARY — color de marca del tenant
         brand: {
-          50:  "#fef3f2",
-          100: "#fee2e2",
-          200: "#fecaca",
-          300: "#fca5a5",
-          400: "#f87171",
-          500: "#ef4444",  // primary
-          600: "#dc2626",  // primary-hover
-          700: "#b91c1c",
-          800: "#991b1b",
-          900: "#7f1d1d",
+          primary: pasionesTokens.colors.primary,
+          secondary: pasionesTokens.colors.secondary,
+          // ...
         },
-        // ACCENT — color secundario para CTAs, highlights
-        accent: {
-          500: "#f59e0b",
-          600: "#d97706",
-        },
-      },
-      fontFamily: {
-        // CUSTOM — fuentes del tenant (descargar vía @fontsource si self-hosting)
-        sans: ["Inter", "system-ui", "sans-serif"],
-        display: ["Playfair Display", "Georgia", "serif"],  // títulos
-      },
-      borderRadius: {
-        // CUSTOM — esquinas más o menos redondeadas
-        card: "0.75rem",
-        button: "0.5rem",
-      },
-    },
-  },
-  plugins: [],
-};
-export default config;
-```
-
-**Reemplazar**:
-- Paleta `brand.500` y `brand.600` por el primary color del cliente.
-- `fontFamily.sans` por la fuente principal (Inter, Roboto, system-ui, etc.).
-- `fontFamily.display` por la fuente de títulos (opcional).
-
-## 2. Logo + favicon
-
-```bash
-# Reemplazar en src/ o app/:
-public/favicon.ico
-public/logo.svg          # primary logo
-public/logo-dark.svg     # dark mode variant
-src/components/Logo.tsx # componente que carga el SVG correcto según el tema
-```
-
-```tsx
-// src/components/Logo.tsx
-export function Logo({ className }: { className?: string }) {
-  return (
-    <picture>
-      <source srcSet="/logo-dark.svg" media="(prefers-color-scheme: dark)" />
-      <img src="/logo.svg" alt="Pasiones" className={className} />
-    </picture>
-  );
-}
-```
-
-## 3. Hero image + OG image
-
-Cada tenant necesita:
-
-- `/public/og-image.png` (1200×630, formato OG) — para compartir en redes sociales.
-- `/public/hero-bg.jpg` — opcional, para hero del storefront.
-- `/public/favicon.ico` + `/public/apple-touch-icon.png`.
-
-Recomendación: usar Vercel OG (`@vercel/og`) para generar dinámicamente según el tenant.
-
-## 4. Dark mode
-
-TailAdmin (y las otras plantillas) traen dark mode por defecto (`darkMode: "class"`). Para customizar la paleta dark:
-
-```ts
-// tailwind.config.ts (continuación)
-theme: {
-  extend: {
-    colors: {
-      // ...
-    },
-  },
-},
-// Plugin para swap de variables según el modo
-plugins: [
-  function ({ addVariant }) {
-    addVariant("dark", "&:where(.dark, .dark *)");
-  },
-],
-```
-
-Las plantillas usan clase `.dark` en `<html>` (gestion via `useTheme` hook).
-
-## 5. Multi-tenant dinámico (Sprint 7+)
-
-Cuando `opita-market-templates` añada soporte multi-tenant en el branding (extender `/checkout/config` con `brand.primaryColor`, `brand.fontFamily`, etc.):
-
-```tsx
-// src/lib/apply-branding.ts
-import { useEffect } from "react";
-
-export function useApplyBranding() {
-  useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/tenants/${process.env.NEXT_PUBLIC_TENANT_ID}/checkout/config`)
-      .then((r) => r.json())
-      .then((cfg) => {
-        if (cfg.brand?.primaryColor) {
-          document.documentElement.style.setProperty("--brand-500", cfg.brand.primaryColor);
+        fontFamily: {
+          display: [pasionesTokens.fonts.display, 'serif'],
+          body: [pasionesTokens.fonts.body, 'sans-serif']
         }
-        // ... aplicar cada token como CSS variable
-      });
-  }, []);
+      }
+    }
+  }
 }
 ```
+
+## Logo + favicon
+
+Replace the upstream logo with the client's logo. For each visual template, the location varies:
+
+| Template | Logo location |
+|----------|---------------|
+| `admin-tailadmin` | `source/src/components/Layout/Logo.tsx` (override) or via CSS background-image |
+| `ecommerce-storefront` | `source/public/logo.svg` (replace) |
+| `booking-service` | `source/components/Logo.tsx` (override) |
+| `landing-marketing` | `source/public/logo.svg` (replace) |
+
+For Pasiones: magenta + cursive "Pasiones" wordmark.
+
+## i18n (es-CO, en-US, pt-BR)
+
+The integration package has 3 locales baked in. Override the locale bundles if the client needs different copy:
+
+```typescript
+// lib/i18n-overrides.ts
+import { setLocale, t } from '@opita/market-integration/i18n'
+
+// Pasiones overrides
+const pasionesOverrides = {
+  'es-CO': {
+    'cart.checkout': 'Ir a pagar en Pasiones',
+    'checkout.acceptAndPay': 'Aceptar y pagar con Wompi',
+  }
+}
+
+setLocale('es-CO')
+// t() will use overridden value if present, else default
+```
+
+## Multi-tenant dynamic branding
+
+For SaaS scenarios (multiple tenants in one app), generate CSS variables dynamically from the tenant config:
+
+```typescript
+// app/[tenant]/layout.tsx (Next.js)
+import { createClient } from '@opita/market-integration'
+
+export default async function TenantLayout({ children, params }) {
+  const client = createClient({ baseUrl: process.env.OPITA_API_URL!, tenantId: params.tenant as any })
+  const config = (await client.checkout.getConfig()).value!
+
+  return (
+    <>
+      <style>{`
+        :root {
+          --brand-primary: ${config.brandPrimary};
+          --brand-secondary: ${config.brandSecondary};
+        }
+      `}</style>
+      {children}
+    </>
+  )
+}
+```
+
+(Sprint 7+: extend `CheckoutConfig` to include `brandPrimary`/`brandSecondary` from `tenant.yml`.)
+
+## Fonts
+
+Use a CDN-loaded Google Font or self-host. For Pasiones:
+
+```html
+<!-- app/layout.html -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+```
+
+## Dark mode
+
+Most templates ship with a dark mode toggle. Override the dark mode tokens per client:
 
 ```css
-/* tailwind.config.ts */
-colors: {
-  brand: {
-    500: "var(--brand-500, #ef4444)",  // fallback al default si no hay token
-  },
+[data-theme="dark"][data-brand="pasiones"] {
+  --brand-primary: #F48FB1;
+  --color-bg: #1A0F12;
 }
 ```
 
-CSS variables permiten que el tenant configure sus colores desde el backend sin rebuild del frontend.
+## Accessibility (WCAG 2.1 AA)
 
-## 6. Tenant-specific copy
+After customization, run an a11y audit:
+- [axe DevTools](https://www.deque.com/axe/devtools/) — browser extension
+- [Lighthouse a11y score](https://developer.chrome.com/docs/lighthouse/accessibility/) — Chrome DevTools
+- [Pa11y CI](https://github.com/pa11y/pa11y-ci) — automated CI check
 
-Para textos que cambian por tenant pero no son parte del branding visual (e.g., "Bienvenido a Pasiones" vs "Welcome to Pasiones"):
+Targets:
+- Color contrast ratio ≥ 4.5:1 for body text, ≥ 3:1 for large text
+- All interactive elements keyboard-accessible
+- All images have alt text
+- Forms have labels
+- ARIA roles where needed
 
-**Sprint 1 (manual)**: hardcodear en cada plantilla:
-```tsx
-<h1>Bienvenido a {process.env.NEXT_PUBLIC_TENANT_DISPLAY_NAME}</h1>
-```
+## Icons + illustrations
 
-**Sprint 7+ (dinámico)**: añadir endpoint `GET /tenants/:id/copy` que devuelve textos localizados por locale, similar a `/checkout/config`.
+Default icon set varies per template. For Pasiones, we use [Heroicons](https://heroicons.com/) (MIT) or [Lucide](https://lucide.dev/) (ISC).
 
-## 7. Fuentes tipográficas
-
-Recomendación: self-hosting con `@fontsource`.
-
-```bash
-npm install @fontsource/inter @fontsource/playfair-display
-```
-
-```ts
-// src/app/layout.tsx (or _app.tsx)
-import "@fontsource/inter/400.css";
-import "@fontsource/inter/500.css";
-import "@fontsource/inter/700.css";
-import "@fontsource/playfair-display/700.css";
-```
-
-Alternativa: Google Fonts via `<link>` (más rápido pero menos privado).
-
-## 8. Iconografía
-
-Las plantillas usan **lucide-react** o **heroicons** (TailAdmin). Cambiar es solo importar el set diferente.
+## OG image + favicon
 
 ```bash
-npm install @heroicons/react
-# o
-npm install lucide-react
+# Generate from the logo
+npx --yes sharp-cli resize \
+  -i theme-overrides/pasiones/logo.svg \
+  -o theme-overrides/pasiones/og-image.png \
+  --width 1200 --height 630
+
+# Favicons
+npx --yes sharp-cli resize \
+  -i theme-overrides/pasiones/logo.svg \
+  -o theme-overrides/pasiones/favicon-32.png \
+  --width 32 --height 32
 ```
 
-```tsx
-// antes
-import { ShoppingCartIcon } from "@heroicons/react/24/outline";
-// después
-import { ShoppingCart } from "lucide-react";
-```
+## Smoke test checklist
 
-## 9. Auditoría de accesibilidad
+After customization:
 
-Después de customizar branding, validar con:
+- [ ] Lighthouse Performance ≥ 90
+- [ ] Lighthouse Accessibility ≥ 95
+- [ ] Lighthouse Best Practices ≥ 90
+- [ ] Lighthouse SEO ≥ 90
+- [ ] axe DevTools: 0 critical/serious issues
+- [ ] Habeas Data banner renders in es-CO
+- [ ] Currency formatted correctly ($ 1.234.567 for COP)
+- [ ] Wompi widget loads (test mode)
+- [ ] Cart reservation + checkout flow works end-to-end
+- [ ] POS refund flow works
+- [ ] Mobile responsive (test 375px, 768px, 1024px)
+- [ ] Dark mode toggle works
 
-- **Lighthouse CI** (Lighthouse accessibility score ≥ 95).
-- **axe DevTools** (browser extension) — pasa por cada página customizada.
-- **Color contrast** — el nuevo `brand.500` debe tener ratio ≥ 4.5:1 contra el background.
-- **Keyboard navigation** — Tab por toda la página, verificar que todos los botones son accesibles.
+## See also
 
-```bash
-# Lighthouse CI en el workflow de deploy
-npx @lhci/cli autorun --collect.url=http://localhost:3000
-```
-
-## 10. Smoke test por tenant
-
-Para validar que un cambio de branding no rompió nada:
-
-```bash
-# 1. Build + test del template customizado
-npm run build
-npm run test
-
-# 2. Deploy a staging
-vercel --target staging
-
-# 3. Smoke test manual con checklist:
-#    - [ ] Logo carga correctamente
-#    - [ ] Color primario se aplica en botones primary
-#    - [ ] Dark mode toggle funciona
-#    - [ ] Fuentes cargan sin FOIT
-#    - [ ] OG image aparece al compartir link
-#    - [ ] Hero copy + imagen correctos
-#    - [ ] Footer con datos legales del tenant
-```
-
-## Reference
-
-- Tailwind docs: https://tailwindcss.com/docs/theme
-- shadcn/ui theming: https://ui.shadcn.com/docs/theming
-- OCAIS auth flow: ver `admin-tailadmin/INTEGRATION.md §2`
-- Multi-tenant design tokens: [Tailwind CSS Variables pattern](https://tailwindcss.com/docs/customizing-colors#using-css-variables)
+- `integration/src/i18n/` — 3 locales
+- `integration/src/currency/` — COP/USD/BRL formatters
+- `integration/src/text/` — Habeas Data + receipt templates
+- `frontend-visual/<x>/THEME.md` — template-specific customization notes

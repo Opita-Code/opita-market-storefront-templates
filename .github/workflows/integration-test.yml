@@ -1,0 +1,46 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "integration/**"
+      - "scripts/build-integration.sh"
+      - "package.json"
+      - ".github/workflows/integration-test.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "integration/**"
+
+concurrency:
+  group: integration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Build + test + typecheck integration package
+        run: bash scripts/build-integration.sh
+
+      - name: Validate SKILL.md files
+        run: bash scripts/validate-skills.sh
+
+      - name: Check OpenAPI spec is valid JSON
+        run: node -e "require('./backend/api-spec.json'); console.log('OpenAPI spec valid')"

@@ -1,126 +1,122 @@
-# Choosing a template — decision matrix
+# Choosing a Template (3-layer decision tree)
 
-> "¿Qué plantilla uso para mi cliente X?" Esta guía es la respuesta.
+This repo has 3 layers. Each client picks **one visual template** + uses the **integration package** + consumes the **backend reference** (which points to the actual deployed API).
 
-## TL;DR
+## Step 1 — Which visual template fits the use case?
 
-| Cliente quiere… | Plantilla | Sprint status |
-|---|---|---|
-| Tienda online B2C con pickup + pago | **`ecommerce-storefront`** | ✅ Sprint 1 |
-| POS terminal + backoffice admin | **`admin-tailadmin`** | ✅ Sprint 1 |
-| Servicios con reserva | `booking-service` | 🟡 Sprint 2 |
-| Landing de marketing / anuncio | `landing-marketing` | 🟡 Sprint 2 |
+| Need | Visual template | Source repo |
+|------|-----------------|-------------|
+| **POS + backoffice** (vendedor, auditor, admin roles) | `frontend-visual/admin-tailadmin` | [TailAdmin](https://github.com/TailAdmin/free-nextjs-admin-dashboard) |
+| **B2C tienda online** (carrito, checkout, Wompi, Habeas Data) | `frontend-visual/ecommerce-storefront` | [Next-ecommerce](https://github.com/Epic-Design-Labs/nextjs-ecommerce-starter) |
+| **Servicios con reserva** (salon, spa, consultorio) | `frontend-visual/booking-service` (skeleton — Sprint 7+) | [HAAR](https://github.com/letsopencals/template-haar) |
+| **Landing estática** (marketing, lead capture) | `frontend-visual/landing-marketing` (skeleton — Sprint 7+) | [ixartz](https://github.com/ixartz/Next-JS-Landing-Page-Starter-Template) |
 
-## Decision tree
+**For Pasiones** (first client, retail clothing):
+- **Primary**: `ecommerce-storefront` (B2C tienda online with Wompi + Habeas Data)
+- **POS layer**: `admin-tailadmin` (for the in-store tablet at branch_001)
+- **NOT booking-service** (Pasiones is retail, not services)
+
+**For Peluquería XYZ** (hypothetical second client, salon):
+- **Primary**: `booking-service` (services with reservation)
+- **Admin**: `admin-tailadmin` (backoffice for staff)
+- **NOT ecommerce-storefront** (no online shop yet)
+
+**For a SaaS B2B** (hypothetical third client):
+- **Primary**: `admin-tailadmin` (full dashboard)
+- **Marketing**: `landing-marketing` (lead capture)
+- **NOT ecommerce-storefront` (different model)
+
+## Step 2 — How does the visual layer talk to the backend?
+
+**Always via `integration/`.** Never directly.
 
 ```
-¿El cliente tiene inventario físico que vender?
-├── Sí → ¿necesita checkout online con pago?
-│   ├── Sí → ecommerce-storefront ✅
-│   └── No → admin-tailadmin ✅ (POS-only, sin B2C)
-└── No → ¿El cliente vende tiempo / servicios?
-    ├── Sí → booking-service 🟡
-    └── No → ¿El cliente quiere anunciar?
-        ├── Sí → landing-marketing 🟡 + link a storefront o app
-        └── No → Caso edge (consultar)
+frontend-visual/<x>/
+        │ imports
+        ▼
+integration/  (@opita/market-integration)
+        │ HTTP over
+        ▼
+backend/  (contract reference)
+        │ mapped to
+        ▼
+opita-market-templates (the actual deployed API)
 ```
 
-## Per-template scoring matrix
+The visual layer imports `createClient`, `canRefund`, `formatCurrency`, `getHabeasDataBanner`, etc. from the integration package. It never sees HTTP. It never sees backend URLs.
 
-Cuando hay duda entre 2 plantillas, evaluar cada dimensión 1-5 (5 = mejor):
+```tsx
+// In ecommerce-storefront/pages/checkout.tsx
+import { createClient, formatCurrency, getHabeasDataBanner, t, setLocale } from '@opita/market-integration'
+import { useEffect, useState } from 'react'
 
-| Dimensión | admin-tailadmin | ecommerce-storefront | booking-service | landing-marketing |
-|---|---|---|---|---|
-| **License** | MIT (5) | open-source (4) | open-source (4) | MIT (5) |
-| **Maintenance activity** | 5 (TailAdmin activo) | 4 | 4 | 3 |
-| **Documentation quality** | 5 | 4 | 3 | 4 |
-| **Customization ease** | 5 (Tailwind + componentes claros) | 5 (shadcn/ui copy-paste) | 3 (Opencals SDK acoplado) | 5 (starter minimal) |
-| **Integration time vs backend** | ~1 día | ~1-2 días | TBD (Sprint 7+) | ~1 día (no backend) |
-| **i18n ready** | Sí (es/en/pt con copy) | Sí (es/en/pt con copy) | Sí | Sí (copy only) |
-| **POS support** | ✅ nativo | ❌ | ❌ | ❌ |
-| **B2C checkout (Wompi)** | ❌ | ✅ nativo | ❌ | ❌ |
-| **Booking/calendar** | ❌ | ❌ | ✅ nativo (Opencals) | ❌ |
-| **Static-only** | ❌ | ❌ | ❌ | ✅ nativo |
-| **Mobile responsive** | ✅ | ✅ | ✅ | ✅ |
-| **SEO optimized** | ⚠️ admin no necesita | ✅ (Next.js metadata) | ✅ | ✅ |
+const client = createClient({ baseUrl: process.env.OPITA_API_URL!, tenantId: process.env.OPITA_TENANT_ID! as any })
 
-## Casos típicos
+export default function CheckoutPage() {
+  const [config, setConfig] = useState(null)
+  useEffect(() => {
+    setLocale('es-CO')
+    client.checkout.getConfig().then((r) => r.ok && setConfig(r.value))
+  }, [])
+  if (!config) return null
 
-### Caso A: "Pasiones" (e-commerce + storage)
+  const banner = getHabeasDataBanner(config.consentTexts, 'es-CO')
+  return (
+    <div>
+      <div dangerouslySetInnerHTML={{ __html: banner.html }} />
+      <button>{t('checkout.acceptAndPay')}</button>
+    </div>
+  )
+}
+```
 
-- Tienda online B2C con pickup → **`ecommerce-storefront`** ✅
-- POS tablet para vendedores → **`admin-tailadmin`** ✅
-- Backoffice admin (auditor, admin) → **`admin-tailadmin`** ✅
-- Marketing landing para SEO → **`landing-marketing`** 🟡 (opcional Sprint 2)
+## Step 3 — Which backend reference do you read?
 
-**Setup time**: 2-3 días combinando ambos templates.
+Read `backend/api-spec.json` for the OpenAPI contract. Cross-reference with `backend/examples/` for curl invocations. For permission/role details, read `backend/docs/auth.md`.
 
-### Caso B: "Peluquería XYZ" (servicios con reserva)
+You almost never need to read `backend/api-spec.json` in full — the integration types in `integration/src/types/` mirror it. If you need to add a new endpoint, update both.
 
-- Web de reservas con calendario → **`booking-service`** 🟡
-- Admin para gestionar staff/servicios → **`admin-tailadmin`** (adaptar para bookings)
-- Marketing → **`landing-marketing`** 🟡
+## Scoring matrix (visual template selection)
 
-**Setup time**: bloqueado hasta Sprint 7+ vertical services-with-bookings.
+| Criterion | admin-tailadmin | ecommerce-storefront | booking-service | landing-marketing |
+|-----------|----------------|---------------------|-----------------|-------------------|
+| POS-friendly layout | ★★★★★ | ★ | ★ | ★ |
+| B2C storefront | ★★ | ★★★★★ | ★★ | ★★★ |
+| Services / appointments | ★★ | ★ | ★★★★★ | ★★ |
+| Marketing landing | ★ | ★★ | ★ | ★★★★★ |
+| Multi-language (es/en/pt) | ★★★★ | ★★★ | ★★★★ | ★★★ |
+| WCAG a11y baseline | ★★★★ | ★★★★ | ★★★ | ★★★ |
+| Customization flexibility | ★★★★ | ★★★★★ | ★★★ | ★★★★★ |
+| Maintenance burden (lower=better) | ★★★ | ★★★ | ★★★★ | ★★ |
 
-### Caso C: "SaaS B2B con landing + app"
+## Multi-tenant deployment strategy
 
-- Landing para captar leads → **`landing-marketing`** 🟡
-- App autenticada → custom (no aplica ninguna plantilla)
+When you onboard a new client (e.g. Peluquería XYZ):
+1. Deploy a new SST stack: `sst deploy --stage peluqueria-xyz-prod`
+2. Same backend code, different tenant config (`tenants/peluqueria-xyz/tenant.yml`)
+3. New frontend repo: `git clone frontend-visual/booking-service/ → peluqueria-xyz-storefront/`
+4. Configure: `OPITA_TENANT_ID=peluqueria-xyz`
+5. Custom branding via `frontend-visual/booking-service/theme-overrides/peluqueria-xyz/`
 
-## Costo total estimado (desarrollo + deploy)
+Each client gets its own deployment, but shares the same integration package + backend reference.
 
-| Plantilla | Customization | Integration | Deploy | Total |
-|---|---|---|---|---|
-| admin-tailadmin | 4h | 4h (OCAIS + API wrapper) | 2h | **~10h = 1.5 días** |
-| ecommerce-storefront | 8h (Habeas Data + i18n) | 8h (Wompi + cart + checkout) | 2h | **~18h = 2-3 días** |
-| booking-service | 8h (strip Opencals SDK) | 8h (custom backend) | 2h | **~18h** (cuando backend listo) |
-| landing-marketing | 4h | 1h (sin backend) | 2h | **~7h = 1 día** |
+## Cost estimates (rough)
 
-## Multi-tenant strategy
+| Layer | Human time | Integration time | Deploy |
+|-------|-----------|------------------|--------|
+| Visual template clone | 4-8 hours | 4-8 hours | 1 hour |
+| Branding customization | 8-16 hours | 4-8 hours | 1 hour |
+| Integration wiring | 16-24 hours | 8-16 hours | 2 hours |
+| **Total per client** | **28-48h** | **16-32h** | **4h** |
 
-Si un mismo operador maneja 5 clientes del mismo vertical (e.g., 5 tiendas online):
+Compare to: building from scratch → 200-400 hours + ongoing maintenance.
 
-**Opción A**: Un deploy por tenant
-- `pasiones.opitacode.com` → ecommerce-storefront deploy #1
-- `otracliente.opitacode.com` → ecommerce-storefront deploy #2
-- Costo: 5 deploys en Vercel (~ $5/mes cada uno para tier hobby).
+## What if no visual template fits?
 
-**Opción B**: Un solo deploy multi-tenant
-- `opitacode.com/[tenantId]/...` → un solo deploy lee el tenantId del URL.
-- El branding tokens se aplica desde `/checkout/config` + `GET /tenants/:id/branding`.
-- Costo: 1 deploy.
-- Sprint 7+ — requiere `opita-market-templates` multi-tenant dinámico.
+If the use case doesn't match any of the 4 templates (e.g. food delivery, marketplace, B2B SaaS):
 
-**Opción C**: Un deploy por vertical, multi-tenant dentro
-- ecommerce-storefront serving todos los e-commerce tenants.
-- admin-tailadmin serving todos los backoffice tenants.
-- Misma instancia Next.js, distinto tenantId en el URL.
-- **Recomendado** para operadores con > 3 clientes.
+1. Add a new visual template: `bash scripts/new-template.sh visual food-delivery https://github.com/user/repo.git`
+2. Write a SKILL.md focused on what it does visually (pages, palette, props)
+3. Update this decision tree
 
-## Customization mínima viable
-
-Para un demo rápido (1-2 días):
-
-1. **Branding** (logo + colores) — ver `brand-customization.md`
-2. **Homepage copy** — 3-4 secciones en español
-3. **Login OCAIS** — copy-paste de `admin-tailadmin/INTEGRATION.md §2`
-4. **Habeas Data banner** — copy-paste de `ecommerce-storefront/INTEGRATION.md §4`
-5. **Deploy Vercel** — `vercel --prod`
-
-## Próximas plantillas a considerar (Sprint 3+)
-
-| Plantilla potencial | Vertical | Prioridad |
-|---|---|---|
-| **Marketplace multi-vendor** | Marketplace (varios sellers) | 🟡 Sprint 7+ |
-| **Food delivery** | Restaurantes con delivery + tracking | 🟡 Sprint 8+ |
-| **SaaS dashboard** | B2B SaaS con billing + Stripe | 🟡 Sprint 8+ |
-| **POS-native (tablet)** | App nativa iPad/Android (no web) | 🔵 Sprint 9+ (React Native) |
-| **Mobile PWA** | PWA instalable para clientes | 🔵 Sprint 9+ |
-
-## Reference
-
-- Standard: https://agentskills.io/home
-- Catálogo completo: [`../SKILL.md`](../SKILL.md)
-- API cookbook: [`api-cookbook.md`](api-cookbook.md)
-- Brand tokens: [`brand-customization.md`](brand-customization.md)
+Don't modify an existing template — the strength of this monorepo is that each template is independent.

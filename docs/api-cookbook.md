@@ -1,291 +1,285 @@
-# API Cookbook — endpoints del backend `opita-market-templates`
+# API Cookbook — common workflows
 
-> Cómo cada plantilla consume el backend. Companion de los runbooks del
-> backend (`opita-market-templates/docs/runbooks/`).
+This guide shows how to do common e-commerce workflows using the integration package. **All examples use the typed `Result<T, ApiError>` API** — never raw fetch.
 
-**Asume**: backend v0.1.0+ (Sprint 6). Versiones anteriores no exponen `/audit`, `/reports/daily`, ni `/checkout/config`.
+## Workflow 1: List products for the storefront
 
-## Convenciones
+```typescript
+import { createClient, type Client } from '@opita/market-integration'
 
-- **Base URL**: `https://api.opitacode.com` (prod) o `https://api-staging.opitacode.com`
-- **Tenant ID**: siempre en el URL path: `/tenants/:tenantId/...`
-- **Auth**: cookie OCAIS (`opita_session`) firmada; el backend la valida automáticamente vía `authMiddleware`.
-- **Content-Type**: `application/json` para POST/PUT; el backend responde `application/json`.
-- **Errores**: `{ error: { code: string, message: string } }` con HTTP status apropiado.
+const client: Client = createClient({
+  baseUrl: process.env.OPITA_API_URL!,
+  tenantId: process.env.OPITA_TENANT_ID! as any
+})
 
-## Por plantilla
+const result = await client.catalog.listProducts({ status: 'active', limit: 20 })
 
-### admin-tailadmin (POS + backoffice)
+if (!result.ok) {
+  // handle error
+  return
+}
 
-#### Salud
-
-```
-GET /health
-→ 200 { status: "ok", stackName: "...", tenantId: "...", version: "..." }
-```
-
-#### Auditoría
-
-```
-GET /tenants/:tenantId/admin/audit?actorEmail=&action=&targetType=&targetId=&limit=&cursor=
-Cookie: opita_session=...
-
-→ 200 { items: AuditLog[], nextCursor: string | null }
-→ 403 forbidden  // auditor role missing
-→ 401 unauthorized  // cookie missing/expired
+const products = result.value.items
+// render ProductCard for each
 ```
 
-#### Reporte diario
+## Workflow 2: Customer adds item to cart + reserves stock
 
-```
-GET /tenants/:tenantId/admin/reports/daily?date=YYYY-MM-DD
-Cookie: opita_session=...
+```typescript
+// 1. Create cart
+const cartResult = await client.cart.create({ branchId: 'branch_001' })
+if (!cartResult.ok) return
+const cart = cartResult.value
 
-→ 200 {
-    date, currency,
-    sales: { count, byChannel: {pos, online}, byStatus, total: {amount, currency} },
-    journalEntries: { count, byKind, totalDebit, totalCredit },
-    refunds: { count, total }
+// 2. Add item (with optimistic concurrency)
+const addResult = await client.cart.addItem(cart.id, {
+  variantId: 'var_001',
+  quantity: 2,
+  expectedStockVersion: 1
+})
+if (!addResult.ok) {
+  if (addResult.error.code === 'conflict') {
+    // Stock was updated by another user — refetch and retry
+    const fresh = await client.stock.list({ variantId: 'var_001', branchId: 'branch_001' })
+    if (fresh.ok && fresh.value.items[0]) {
+      await client.cart.addItem(cart.id, {
+        variantId: 'var_001',
+        quantity: 2,
+        expectedStockVersion: fresh.value.items[0].version
+      })
+    }
   }
-→ 400 invalid_date | future_date
+  return
+}
+
+// 3. Reserve stock (15-min TTL)
+const reserveResult = await client.cart.reserve(cart.id)
+if (!reserveResult.ok) return
+// Now show "Proceed to checkout" button
 ```
 
-#### Productos (admin CRUD)
+## Workflow 3: Habeas Data consent capture
 
-```
-GET /tenants/:tenantId/admin/products?limit=&cursor=
-→ 200 { items: Product[], nextCursor }
+The Ley 1581/2012 banner comes from the backend (operator-controlled). The frontend renders it + captures consent.
 
-POST /tenants/:tenantId/admin/products
-Body: ProductCreateInput
-→ 201 { product }
+```typescript
+// On checkout page load
+const configResult = await client.checkout.getConfig()
+if (!configResult.ok) return
+const config = configResult.value
 
-PUT /tenants/:tenantId/admin/products/:id
-Body: ProductUpdateInput
-→ 200 { product }
+// Render banner
+import { getHabeasDataBanner } from '@opita/market-integration/text'
+const banner = getHabeasDataBanner(config.consentTexts, 'es-CO')
 
-POST /tenants/:tenantId/admin/products/:id/deactivate
-→ 200 { product: Product with isActive=false }
-```
-
-#### Variantes
-
-```
-POST /tenants/:tenantId/admin/products/:productId/variants
-Body: { sku, attributeValues, price, cost?, barcode?, weightGrams?, isActive }
-→ 201 { variant }
-```
-
-#### Sucursales
-
-```
-GET /tenants/:tenantId/admin/branches
-POST /tenants/:tenantId/admin/branches
-Body: { id, divipola_code, name, address?, phone?, email?, hours?, is_active, is_pickup_enabled, geolocation? }
-→ 201 { branch }
-```
-
-#### Stock (ajuste manual + transferencia)
-
-```
-POST /tenants/:tenantId/admin/stock/adjust
-Body: { branchId, variantId, delta: -5, reason: "adjustment", expectedVersion, notes? }
-→ 200 { stock, movement }
-
-POST /tenants/:tenantId/admin/stock/transfer
-Body: { fromBranchId, toBranchId, variantId, quantity, expectedFromVersion, expectedToVersion, notes? }
-→ 200 { fromStock, toStock, fromMovement, toMovement }
-```
-
-#### POS
-
-```
-POST /tenants/:tenantId/pos/sales
-Body: { branchId, paymentMethod }
-→ 201 { sale }   // status=draft
-
-POST /tenants/:tenantId/pos/sales/:saleId/lines/scan
-Body: { barcode, quantity, expectedVersion }
-→ 200 { sale, line }
-→ 422 insufficient_stock
-
-POST /tenants/:tenantId/pos/sales/:saleId/complete
-Body: { expectedVersion, paymentRef?: { provider, transactionId } }
-→ 200 { sale, journalEntryIds, stockFailures? }
-→ 422 empty_sale
-
-POST /tenants/:tenantId/pos/sales/:saleId/refund
-Body: { reason, refundLines?: [{ variantId, quantity }], expectedVersion }
-→ 200 { sale, refundJournalEntryId, refundAmount, stockFailures? }
-→ 409 sale_not_refundable  // sale.status !== completed
-→ 422 invalid_refund_request | invalid_refundLines
-```
-
-#### Orders (online)
-
-```
-GET /tenants/:tenantId/orders/:id
-→ 200 { order } | 404 order_not_found
-
-POST /tenants/:tenantId/orders/:id/ready-for-pickup
-→ 200 { order: with pickupCode + pickupExpiresAt }
-
-POST /tenants/:tenantId/orders/:id/complete
-Body: { pickupCode }   // 6-char alphanumeric
-→ 200 { order } | 403 pickup_code_mismatch
-
-POST /tenants/:tenantId/orders/:id/refund
-Body: { reason, expectedVersion }
-→ 200 { order, saleId, refundJournalEntryId, refundAmount }
-→ 404 sale_not_found_for_order
-```
-
----
-
-### ecommerce-storefront (B2C cliente)
-
-#### Config público (sin auth)
-
-```
-GET /tenants/:tenantId/checkout/config
-→ 200 {
-    currency, reservationTtlMinutes, checkoutTtlMinutes,
-    habeasDataPolicyUrl, habeasDataPolicyVersion,
-    consentTexts: { es, en?, pt?, version },
-    wompiRefundPolicy: "external" | "automatic"
+// User clicks "Accept"
+async function handleAccept() {
+  const result = await client.cart.captureHabeasDataConsent(cart.id, {
+    accepted: true,
+    policyVersion: config.habeasDataPolicyVersion
+  })
+  if (!result.ok) {
+    if (result.error.code === 'conflict') {
+      // Policy version mismatch — refetch config and re-display banner
+      const fresh = await client.checkout.getConfig()
+      // ...
+    }
   }
+}
 ```
 
-**El frontend debe llamar este endpoint una sola vez al boot** y cachear en Context (ver `INTEGRATION.md §3`).
+See `integration/docs/usage.md` for framework-specific patterns (React, Vue, Svelte, plain HTML).
 
-#### Catálogo (público, isActive filter server-side)
+## Workflow 4: Checkout + Wompi redirect
 
-```
-GET /tenants/:tenantId/catalog/products?category=&limit=&cursor=
-→ 200 { items: Product[], nextCursor }
+```typescript
+import { canRefund, saleNextStates } from '@opita/market-integration/fsm'
 
-GET /tenants/:tenantId/catalog/products/:id
-→ 200 { product, variants: Variant[] } | 404 product_not_found
+const checkoutResult = await client.checkout.create({
+  cartId: cart.id,
+  customerEmail: 'jane@example.co',
+  customerFullName: 'Jane Doe',
+  customerPhone: '+57 1 234 5678'
+})
 
-GET /tenants/:tenantId/catalog/branches
-→ 200 { items: Branch[], nextCursor }  // isActive=true + isPickupEnabled=true
-
-GET /tenants/:tenantId/catalog/branches/:branchId/stock/:variantId
-→ 200 { variantId, branchId, quantity, reservedQuantity, available }
-```
-
-#### Cart (cliente autenticado)
-
-```
-POST /tenants/:tenantId/cart/reservations
-Body: { variantId, branchId, quantity, expectedStockVersion }
-→ 201 { reservation }
-→ 422 insufficient_stock | variant_inactive | stock_not_found
-
-GET /tenants/:tenantId/cart/reservations?status=active&limit=&cursor=
-→ 200 { items: CartReservation[], nextCursor }
-
-DELETE /tenants/:tenantId/cart/reservations/:reservationId
-→ 200 { released: reservationId }
-→ 404 reservation_not_found
-→ 409 reservation_not_releasable
-```
-
-#### Checkout
-
-```
-POST /tenants/:tenantId/orders/checkout
-Body: {}   // el cliente ya eligió branchId al agregar al cart
-→ 201 {
-    order,   // status=pending-payment
-    wompiTransactionId,
-    widgetUrl,  // iframe URL
-    expiresAt,
+if (!checkoutResult.ok) {
+  if (checkoutResult.error.code === 'precondition_failed') {
+    // Habeas Data consent missing or policy version mismatch
+    showConsentBanner()
   }
-→ 400 no_active_cart | multi_branch_cart | zero_total
-→ 413 too_many_reservations
+  return
+}
+
+const order = checkoutResult.value
+// Redirect to Wompi widget
+window.location.href = order.checkoutUrl!
 ```
 
-#### Orders (cliente autenticado)
+## Workflow 5: Order status tracking
 
+Wompi sends webhook → backend updates Order status → frontend polls or uses SSE.
+
+```typescript
+// Polling pattern (every 5s while on order page)
+const pollOrder = async (orderId: string) => {
+  const result = await client.orders.get(orderId)
+  if (!result.ok) return
+  const order = result.value
+
+  switch (order.status) {
+    case 'pending-payment':
+      // keep polling
+      break
+    case 'paid':
+      // show success page
+      break
+    case 'cancelled':
+      // show retry UI
+      break
+    case 'refunded':
+      // show refund receipt
+      break
+  }
+}
+
+setInterval(() => pollOrder(orderId), 5000)
 ```
-GET /tenants/:tenantId/orders/:id
-→ 200 { order } | 404
-→ 403 forbidden  // cliente intentando ver pedido ajeno
 
-GET /tenants/:tenantId/orders?status=&limit=&cursor=
-→ 200 { items, nextCursor }
-Cliente solo ve sus propios pedidos (customerId del JWT).
+## Workflow 6: Customer-initiated refund
 
-POST /tenants/:tenantId/orders/:id/cancel
-→ 200 { order } | 409 order_not_cancellable
+```typescript
+import { canRefundOrder, orderNextStates } from '@opita/market-integration/fsm'
+
+const order = (await client.orders.get(orderId)).value!
+
+// UI decision: show refund button?
+if (!canRefundOrder(order)) {
+  hideRefundButton()
+  return
+}
+
+// User picks reason + submits
+const refundResult = await client.orders.refund(order.id, {
+  reason: 'damaged',  // or 'customerRequest' | 'defectiveProduct' | 'wrongItem' | 'other'
+  notes: 'Box was crushed during shipping',
+  // refundLines omitted → full refund
+  // refundLines: [{ variantId: 'var_001', quantity: 1 }] → partial
+})
+
+if (!refundResult.ok) {
+  if (refundResult.error.code === 'state_conflict') {
+    // Order moved to a non-refundable state (e.g. cancelled)
+    // Refresh + re-check
+  }
+  return
+}
+
+// Show refund confirmation
+const refunded = refundResult.value
+// Backend emits `order.refund` audit log + counter JournalEntry automatically
 ```
 
-#### Me
+## Workflow 7: POS sale (vendedor)
 
+```typescript
+import { canRefundSale, saleNextStates } from '@opita/market-integration/fsm'
+
+const saleResult = await client.pos.createSale({
+  branchId: 'branch_001',
+  paymentMethod: 'cash',  // 'cash' | 'card' | 'transfer'
+  lines: [
+    { variantId: 'var_001', quantity: 2 },
+    { variantId: 'var_002', quantity: 1 }
+  ]
+})
+
+if (!saleResult.ok) return
+const sale = saleResult.value
+
+// Print receipt
+import { getReceiptText } from '@opita/market-integration/text'
+import { formatCurrency } from '@opita/market-integration/currency'
+
+const receipt = getReceiptText(sale, 'es-CO')
+console.log(receipt.header)
+for (const line of sale.lines) {
+  console.log(receipt.lineItemLabel(
+    line.variantId,
+    line.quantity,
+    formatCurrency(line.unitPriceAmount * line.quantity, sale.currency, 'es-CO')
+  ))
+}
+console.log(receipt.totalLabel + ': ' + formatCurrency(sale.totalAmount, sale.currency, 'es-CO'))
+console.log(receipt.footer)
 ```
-GET /tenants/:tenantId/me
-→ 200 { user: { email, customerId, branchIds, roles } }
+
+## Workflow 8: Audit log query (auditor/admin)
+
+```typescript
+const auditResult = await client.admin.audit.list({
+  actorEmail: 'vendedor@pasiones.co',
+  limit: 50
+})
+
+if (!auditResult.ok) return
+const logs = auditResult.value.items
+
+for (const log of logs) {
+  console.log(`${log.createdAt} ${log.actorEmail} ${log.action} ${log.targetType ?? '-'}:${log.targetId ?? '-'}`)
+}
 ```
 
-#### Wompi webhook (server-side, no para storefront)
+**Note**: querying audit logs emits its own `audit.list` log entry for Ley 1581 PII-access traceability.
 
+## Workflow 9: Habeas Data compliance check
+
+```typescript
+// As auditor/admin, check if a customer's consent is current
+const result = await client.admin.compliance.getHabeasData(customerId)
+
+if (!result.ok) return
+
+if (!result.value.policyVersionMatched) {
+  // Customer needs to re-consent on next reservation
+  // Backend will re-capture automatically — flag for manual follow-up
+  console.warn(`Customer ${customerId} on old policy version ${result.value.habeasDataConsent?.policyVersion}`)
+}
 ```
-POST /tenants/:tenantId/webhooks/wompi
-Headers: wompi_hash (HMAC-SHA256)
-Body: Wompi event payload
-→ 200 (validates + emits Sale + JournalEntries + consumes CartReservations)
+
+## Workflow 10: Daily report (admin)
+
+```typescript
+const today = new Date().toISOString().slice(0, 10)  // YYYY-MM-DD
+const reportResult = await client.admin.reports.daily(today)
+
+if (!reportResult.ok) {
+  if (reportResult.error.code === 'validation_failed') {
+    // Future date rejected
+  }
+  return
+}
+
+const report = reportResult.value
+console.log(`Sales: ${report.sales.total} (POS: ${report.sales.byChannel.pos}, Online: ${report.sales.byChannel.online})`)
+console.log(`Refunds: ${report.refunds.count} (total: ${formatCurrency(report.refunds.total, 'COP', 'es-CO')})`)
 ```
 
----
+## Mock backend for testing these workflows
 
-### booking-service (Sprint 7+ — pending)
+```typescript
+import { createMockClient, resetMockState } from '@opita/market-integration/mock'
 
-Pendiente hasta que el vertical `services-with-bookings` se implemente en el backend.
+resetMockState()
+const client = createMockClient({ tenantId: 'pasiones' as any })
 
-Endpoints target:
-- `GET /tenants/:id/services`
-- `GET /tenants/:id/services/:id/availability?date=YYYY-MM-DD`
-- `POST /tenants/:id/bookings`
-- `GET /tenants/:id/bookings/:id`
-- `POST /tenants/:id/bookings/:id/cancel`
+// Now run any of the above workflows — same interface, in-memory state
+```
 
----
-
-### landing-marketing (Sprint 2 — no backend)
-
-Sin endpoints. El sitio es estático. CTA → tenant's ecommerce-storefront.
-
-## Tipos compartidos (TypeScript)
-
-El backend publica `@opita-market/core` con todas las entidades. Sprint 7+
-recomendación: crear `@opita-market/contracts` (types-only, public npm) para
-que las plantillas frontend importen los tipos sin depender del paquete
-core (que tiene dependencias de SST/Node).
-
-Alternativa: `tsc --emitDeclarationOnly` sobre `packages/core/` + public npm.
-
-## Errores comunes y cómo diagnosticarlos
-
-| HTTP | code | Causa | Fix frontend |
-|---|---|---|---|
-| 400 | missing_variantId | body falta campo | Validate antes de POST |
-| 400 | invalid_quantity | quantity no es entero ≥1 | UI: solo inputs numéricos |
-| 401 | (cookie expirada) | OCAIS session expirada | Redirect /login con returnTo |
-| 403 | forbidden | cliente intentando acceso admin | Hide UI + redirect /403 |
-| 403 | branch_forbidden | vendedor sin scope en esta branch | Hide branch selector option |
-| 404 | product_not_found | producto desactivado o mal id | Refresh catalog, hide card |
-| 409 | stale_version | otro admin modificó la misma fila | Re-fetch + re-submit |
-| 422 | insufficient_stock | no hay stock disponible | Toast + re-fetch variant |
-| 422 | empty_sale | intentando cobrar venta sin líneas | Disable Complete button |
-| 502 | wompi_unavailable | Wompi API down | Retry + support contact |
+The mock ships with Pasiones fixtures (3 products, 2 branches, 50 stock per variant). Reset between tests with `resetMockState()`.
 
 ## Reference
 
-- Backend runbooks: `opita-market-templates/docs/runbooks/`
-- Catalog runbook (Sprint 1): `opita-market-templates/docs/runbooks/mvp6-catalog-branches.md`
-- Stock runbook (Sprint 2): `opita-market-templates/docs/runbooks/mvp6-stock-movements.md`
-- Cart runbook (Sprint 3): `opita-market-templates/docs/runbooks/mvp6-cart-reservations.md`
-- Order + Wompi runbook (Sprint 4): `opita-market-templates/docs/runbooks/mvp6-order-wompi.md`
-- POS runbook (Sprint 5): `opita-market-templates/docs/runbooks/mvp5-pos-journal.md`
-- Refunds + Audit + Habeas Data runbook (Sprint 6): `opita-market-templates/docs/runbooks/mvp6-refunds-audit.md`
+- `integration/src/types/` — all domain types
+- `integration/src/fsm/` — FSM helpers
+- `backend/docs/fsm.md` — FSM source of truth
+- `backend/docs/errors.md` — error code reference

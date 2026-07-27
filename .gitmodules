@@ -1,18 +1,24 @@
 # Source dependencies (git submodules)
-# Cada plantilla vendedora del upstream — pinned a un commit estable.
-[submodule "templates/admin-tailadmin/source"]
-	path = templates/admin-tailadmin/source
+# Cada plantilla visual — pinned a un commit estable del upstream MIT/open-source.
+#
+# Estructura: el repo es un monorepo de 3 plantillas:
+#   - backend/          (referencia al backend opita-market, código en repo aparte)
+#   - integration/      (TypeScript framework-agnostic, types + zod + mock + i18n)
+#   - frontend-visual/  (estas 4 plantillas visuales como submodules)
+#
+[submodule "frontend-visual/admin-tailadmin/source"]
+	path = frontend-visual/admin-tailadmin/source
 	url = https://github.com/TailAdmin/free-nextjs-admin-dashboard.git
 	branch = main
-[submodule "templates/ecommerce-storefront/source"]
-	path = templates/ecommerce-storefront/source
+[submodule "frontend-visual/ecommerce-storefront/source"]
+	path = frontend-visual/ecommerce-storefront/source
 	url = https://github.com/Epic-Design-Labs/nextjs-ecommerce-starter.git
 	branch = main
-[submodule "templates/booking-service/source"]
-	path = templates/booking-service/source
+[submodule "frontend-visual/booking-service/source"]
+	path = frontend-visual/booking-service/source
 	url = https://github.com/letsopencals/template-haar.git
 	branch = main
-[submodule "templates/landing-marketing/source"]
-	path = templates/landing-marketing/source
+[submodule "frontend-visual/landing-marketing/source"]
+	path = frontend-visual/landing-marketing/source
 	url = https://github.com/ixartz/Next-JS-Landing-Page-Starter-Template.git
-	branch = main
+	branch = master

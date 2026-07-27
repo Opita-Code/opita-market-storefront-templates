@@ -1,175 +1,181 @@
-# Agent Skills — cómo los AI agents descubren y consumen este repo
+# Agent Skills — authoring guide
 
-> Este repo está diseñado para ser consumido por AI coding agents (Claude
-> Code, Cursor, Cline, Roo Code, etc.) que soporten el estándar
-> [Agent Skills](https://agentskills.io/).
+This guide explains how to write a `SKILL.md` file that conforms to the [Agent Skills standard](https://agentskills.io/) (the same standard used by Anthropic's [skills repo](https://github.com/anthropics/skills)).
 
-## Cómo descubre el agente las plantillas
+## What is a Skill?
 
-### Modo 1: Progressive disclosure (estándar)
+A Skill is a discoverable, self-describing capability that an AI agent can load and use. Skills have:
 
-Cuando un agente carga skills al startup, hace:
+1. A `SKILL.md` file with YAML frontmatter + markdown body
+2. A unique kebab-case `name`
+3. A clear `description` (50-1024 chars)
+4. Optional supporting files (scripts, examples, docs)
 
-1. **Discovery**: lee solo el `name` + `description` del frontmatter de cada SKILL.md (~100 tokens por skill). Decide cuáles son relevantes para la tarea.
-2. **Activation**: cuando la tarea matchea una `description`, lee el SKILL.md completo (~5-15KB).
-3. **Execution**: si el SKILL.md referencia INTEGRATION.md o repomix.txt, los lee on-demand.
+When an agent discovers a Skill, it reads `SKILL.md` to learn:
+- **What** the Skill does
+- **When** to use it
+- **How** to use it (patterns, examples, gotchas)
 
-```
-SKILL.md (root)
-  └─ description: "Catálogo de plantillas frontend..." (~300 tokens)
-     ↓ match con la tarea
-SKILL.md (root completo, ~12KB)
-  └─ references templates/<name>/SKILL.md
-     ↓ match con la subtarea
-templates/admin-tailadmin/SKILL.md (~8KB)
-  └─ references INTEGRATION.md + repomix.txt
-     ↓ on-demand
-templates/admin-tailadmin/INTEGRATION.md (~15KB)
-templates/admin-tailadmin/repomix.txt (~600KB)
-```
-
-**Resultado**: el agente consume ~5KB para el SKILL.md metadata + ~15KB para INTEGRATION.md, **solo cuando la tarea matchea**.
-
-### Modo 2: Inyección directa (forzada)
-
-Si el operador quiere que el agente cargue una plantilla específica:
-
-```
-@opita-market-storefront-templates/templates/admin-tailadmin/SKILL.md
-```
-
-O en Cursor: arrastrar `templates/admin-tailadmin/SKILL.md` al composer.
-
-### Modo 3: Compressed context (repomix.txt)
-
-Si el agente necesita entender el código fuente completo (no solo metadata + integración):
-
-```
-Lee templates/admin-tailadmin/repomix.txt (~600KB) 
-y explícame cómo customizar el dashboard para multi-branch.
-```
-
-El agente lee **solo el archivo comprimido**, no clona el submodule. Costo: ~150K tokens de input (dentro del context window de Claude Sonnet 4.x con 200K tokens).
-
-## Frontmatter schema (YAML en cada SKILL.md)
+## Required frontmatter
 
 ```yaml
 ---
-name: <kebab-case-id>             # requerido, único, lowercase + hyphens
-description: |                    # requerido, multi-line
-  <2-4 párrafos: qué hace, cuándo usar, cuándo NO usar, stack, license, source>
-license: MIT | Apache-2.0 | ...   # opcional pero recomendado
-source_repo: <URL upstream>       # opcional
-integration_target: <backend version>   # opcional
-allowed_tools: [Bash, Read, Edit, Write]   # opcional, para gating de tools
+name: kebab-case-name             # required, unique, kebab-case
+description: 50-1024 char string  # required, what + when + how
+license: MIT                       # optional but recommended
 ---
 ```
 
-## Validación del estándar
+### Name rules
 
-`scripts/validate-skills.sh` corre las 4 validaciones que el estándar exige:
+- Lowercase alphanumeric + hyphens
+- No leading/trailing hyphen
+- No consecutive hyphens
+- Unique across the repo (validate with `scripts/validate-skills.sh`)
+- Pattern: `^[a-z0-9]+(-[a-z0-9]+)*$`
 
-1. **YAML parseable** — el frontmatter es YAML válido.
-2. **`name` kebab-case** — regex `^[a-z0-9]+(-[a-z0-9]+)*$`.
-3. **`description` length** — entre 50 y 1024 caracteres (recomendado 100-500).
-4. **`name` único en repo** — no hay duplicados entre SKILL.md files.
+Examples: `admin-tailadmin`, `ecommerce-storefront`, `integration`, `backend`
 
-Si una validación falla, el script exit 1 + mensaje claro. CI bloquea el merge.
+### Description rules
 
-## Activación natural por keywords
+- 50-1024 chars
+- Must answer 3 questions:
+  1. **What** does this Skill do?
+  2. **When** should an agent use it?
+  3. **How** does the agent consume it (or where to find more)?
 
-Cada `description` debería incluir las keywords que el operador / usuario usaría naturalmente. Ejemplo para `admin-tailadmin`:
+Bad example (too vague):
+> "A template for the storefront."
+
+Good example:
+> "Framework-agnostic TypeScript SDK that wraps opita-market backend in typed contracts + utilities (Result<T,E> SDK + zod schemas + in-memory mock + FSM helpers + Wompi webhook parsers + i18n ICU + currency formatters + Habeas Data text). Use when an AI agent needs to consume the backend from any frontend."
+
+## Recommended frontmatter (extra fields)
+
+We use these optional fields to give agents more context:
 
 ```yaml
-description: |
-  POS tablet + admin panel dashboard based on TailAdmin Next.js (MIT, 2.5k stars).
-  Use when: building admin UI, POS terminal, dashboards with charts/tables,
-  or any backoffice tool that needs auth pages, RBAC, and dark mode.
+name: integration
+description: ... (required)
+license: MIT
+source_repo: https://github.com/Opita-Code/opita-market-storefront-templates
+integration_target: any TypeScript / JavaScript frontend
+template_type: code | visual | reference | meta
+oca_integration: true | false
 ```
 
-**Keywords que disparan este skill**:
-- "POS terminal"
-- "admin panel"
-- "dashboard"
-- "backoffice"
-- "TailAdmin"
-- "auth pages"
-- "RBAC"
+- `source_repo` — where the actual code lives (for reference templates)
+- `integration_target` — what consumes this Skill
+- `template_type` — categorization for discoverability
+- `oca_integration` — whether OCAIS auto-loads this Skill
 
-## Diferencia entre SKILL.md (estándar) e INTEGRATION.md (este repo)
+## Body structure
 
-| Aspecto | SKILL.md | INTEGRATION.md |
-|---|---|---|
-| **Audiencia** | AI agent | Desarrollador humano |
-| **Tamaño** | Pequeño (~5-15KB) | Mediano (~10-30KB) |
-| **Estilo** | Cuándo + decisiones | Cómo + comandos copy-paste |
-| **Ejemplos de código** | Mínimos (referencias) | Completos (TypeScript completo) |
-| **Cuándo se carga** | On-demand (progressive) | On-demand (cuando se necesita código) |
-| **Validación** | Estándar agentskills.io | Convención interna |
+The body of `SKILL.md` should follow this structure:
 
-Regla simple: **si lo lee el agente primero, va en SKILL.md. Si lo lee el humano cuando implementa, va en INTEGRATION.md**.
+```markdown
+# {Skill Name}
 
-## Ejemplos de invocación por agente
+One-paragraph summary.
 
-### Claude Code
+## When to use this Skill
+- Bullet list of scenarios where the agent SHOULD reach for this Skill
+- Bullet list of scenarios where the agent should NOT
 
-```
-> /skill opita-market-storefront-templates
+## What this Skill contains
+- Tree view of the folder structure
+- Brief explanation of each major file
 
-[el agente carga el root SKILL.md, ve la matriz choosing-template.md, 
-y pregunta: "Tienes 4 plantillas — admin-tailadmin, ecommerce-storefront, 
-booking-service, landing-marketing. ¿Cuál te interesa?"]
+## How to consume this Skill
+- Code examples (3-5 patterns)
+- Common gotchas
+- Links to detailed docs in `docs/`
 
-> Necesito un POS para una tienda en Colombia. ¿Qué plantilla recomiendas?
+## What this Skill does NOT contain
+- Explicit list to prevent agent overreach
 
-[el agente lee admin-tailadmin/SKILL.md, ve que cubre POS + checkout + refunds,
-y responde con un plan detallado]
+## See also
+- Related Skills
+- External references
 ```
 
-### Cursor
+## Examples in this repo
 
+| Skill | File | Type |
+|-------|------|------|
+| Root catalog | `SKILL.md` | meta |
+| Backend reference | `backend/SKILL.md` | reference |
+| Integration SDK | `integration/SKILL.md` | code |
+| Visual: admin-tailadmin | `frontend-visual/admin-tailadmin/SKILL.md` | visual |
+| Visual: ecommerce-storefront | `frontend-visual/ecommerce-storefront/SKILL.md` | visual |
+| Visual: booking-service | `frontend-visual/booking-service/SKILL.md` | visual |
+| Visual: landing-marketing | `frontend-visual/landing-marketing/SKILL.md` | visual |
+
+## Visual-only Skills
+
+Visual templates must have SKILL.md focused on:
+- What pages/screens render
+- Default color palette + theme variables
+- What props/components the template accepts
+- How to install + wire to `@opita/market-integration`
+
+They must NOT include:
+- Backend API endpoints
+- HTTP requests
+- Auth flows
+- Anything that ties the visual layer to a specific backend
+
+Bad (current anti-pattern, what we're fixing):
+```markdown
+## Integration with backend
+- GET /tenants/{tenantId}/catalog/products
+- POST /tenants/{tenantId}/cart/{cartId}/items
 ```
-@opita-market-storefront-templates @templates/admin-tailadmin/SKILL.md
 
-Dame el plan para customizar TailAdmin para Pasiones.
+Good (what visual Skills should have):
+```markdown
+## Props it accepts
+```typescript
+interface ProductCardProps {
+  product: Product              // from @opita/market-integration
+  onAddToCart: (variantId: string, quantity: number) => void
+  locale: Locale                // 'es-CO' | 'en-US' | 'pt-BR'
+}
 ```
 
-### Sin CLI específica
+## Installation
+1. `npm install @opita/market-integration`
+2. Import the SDK: `import { createClient } from '@opita/market-integration'`
+3. See `../../integration/docs/usage.md` for React/Vue/Svelte/HTML patterns
+```
 
-El agente tiene acceso filesystem al repo (clonado o copiado en `/`). Navega por las SKILL.md + INTEGRATION.md cuando el operador hace preguntas relevantes.
+## Validation
 
-## Cómo mantener los SKILL.md actualizados
+Run `bash scripts/validate-skills.sh` before committing. It checks:
+- YAML frontmatter is parseable
+- `name` is kebab-case
+- `name` is unique
+- `description` is 50-1024 chars
 
-Después de cada cambio significativo al código fuente (submodule actualizado, nueva feature, breaking change):
+The validator exits non-zero if any Skill fails — this fails CI in `integration-test.yml`.
 
-1. Editar `templates/<name>/SKILL.md` — actualizar `description` si el caso de uso cambió.
-2. Editar `templates/<name>/INTEGRATION.md` — reflejar el nuevo wiring.
-3. Correr `./scripts/repack.sh templates/<name>` — regenerar `repomix.txt`.
-4. Correr `./scripts/validate-skills.sh` — validar que el frontmatter sigue el estándar.
-5. Commit + push.
+## Multi-Skill composition
 
-## Cómo los agentes usan el patrón híbrido
+When a task spans multiple Skills, agents should:
+1. Load the root `SKILL.md` to discover the catalog
+2. Read each relevant Skill's `SKILL.md` for details
+3. Cross-reference via `docs/oca-integration.md` for multi-Skill workflows
 
-| Si el agente necesita... | Lee |
-|---|---|
-| Saber si esta plantilla es la correcta para la tarea | SKILL.md (metadata) |
-| Saber cómo integrar con el backend | INTEGRATION.md (on-demand) |
-| Entender el código fuente completo de la plantilla | repomix.txt (compressed) |
-| Modificar el código fuente real | source/ (submodule) — `cat`, `grep`, edit con herramientas |
+Example: "Build a Pasiones storefront" →
+1. Read root `SKILL.md` → discover 3 layers
+2. Read `backend/SKILL.md` → know the contract
+3. Read `integration/SKILL.md` → know the SDK
+4. Read `frontend-visual/ecommerce-storefront/SKILL.md` → know the visual
+5. Read `docs/oca-integration.md` → know how to compose all 3
 
-**Beneficio clave**: el agente NO necesita clonar el submodule para entender el codebase. El `repomix.txt` le da contexto completo sin el costo de clonar + leer archivos uno a uno.
+## See also
 
-## Limitaciones del patrón
-
-- **repomix.txt stale**: si el upstream cambia y no regeneramos, el agente tiene contexto viejo. Mitigación: GitHub Action semanal.
-- **Tokens consumidos**: leer repomix.txt cuesta ~150K tokens. Solo hacerlo cuando el agente necesita entender el código (no para tareas triviales).
-- **No es ejecutable**: SKILL.md + INTEGRATION.md son texto, no código. El agente sigue instrucciones, no las ejecuta. Si necesitas scripts, van en `scripts/`.
-- **Submodule pain**: `git submodule update --init` puede ser lento. El operador debe recordar correrlo después de clonar.
-
-## Reference
-
-- Estándar Agent Skills: https://agentskills.io/home
-- Anthropic official skills: https://github.com/anthropics/skills
-- Repomix (herramienta de compresión): https://github.com/yamadashy/repomix
-- Progressive disclosure pattern: https://agentskills.io/quickstart
-- Open specification: https://github.com/agentskills/agentskills
+- [Agent Skills standard](https://agentskills.io/) — official spec
+- [anthropics/skills](https://github.com/anthropics/skills) — example Skills
+- `docs/oca-integration.md` — how OCAIS uses Skills
+- `scripts/validate-skills.sh` — validation script

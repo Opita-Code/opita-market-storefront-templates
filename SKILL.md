@@ -1,156 +1,130 @@
 ---
 name: opita-market-storefront-templates
-description: |
-  Catálogo de plantillas frontend open-source, pre-empaquetadas como Agent Skills
-  (formato Anthropic/agentskills.io), listas para personalizar e integrar con
-  el backend opita-market-templates. Cubre 4 verticales: e-commerce B2C,
-  admin/POS, servicios con booking, landing pages de marketing.
-
-  Use when: un cliente nuevo de opita-market necesita un frontend funcional
-  rápido; el operador quiere elegir entre plantillas probadas (TailAdmin,
-  Next.js ecommerce starter, HAAR Salon, ixartz) sin empezar desde cero.
-
-  Don't use when: el cliente quiere un diseño 100% a medida (mejor contratar
-  un diseñador); el vertical no está en el catálogo (futuro); necesitas una
-  PWA móvil nativa (estas son web responsive, no React Native).
+description: 3-template monorepo for Opita Code storefront development. Three layers, all in one repo, all consumable as Agent Skills: (1) backend reference (OpenAPI 3.1 + curl examples for opita-market-templates API), (2) integration (framework-agnostic TypeScript SDK with Result<T,E>, FSM helpers, i18n, currency, mock), (3) frontend-visual (4 open-source templates as git submodules). Use this repo when an AI agent needs to build a storefront for a new client and wants to compose the right layer for each concern.
 license: MIT
-source_repos:
-  - https://github.com/TailAdmin/free-nextjs-admin-dashboard
-  - https://github.com/Epic-Design-Labs/nextjs-ecommerce-starter
-  - https://github.com/letsopencals/template-haar
-  - https://github.com/ixartz/Next-JS-Landing-Page-Starter-Template
-integration_target: opita-market-templates v0.1.0+ (Sprint 6+)
+source_repo: https://github.com/Opita-Code/opita-market-storefront-templates
+integration_target: any TS/JS frontend + the opita-market backend
+template_type: meta (catalog of 3 templates)
+oca_integration: yes
+architecture: 3-layer (backend/integration/frontend-visual)
 ---
 
-# opita-market-storefront-templates — catálogo de plantillas frontend
+# opita-market-storefront-templates
 
-## Cuándo activar este skill
+A 3-template monorepo for building storefronts. Each of the 3 folders is a **template** (in the Agent Skills sense): an AI agent can read its `SKILL.md` to know what it does, when to use it, and how to consume it.
 
-Activa este skill cuando:
-- Un cliente nuevo de `opita-market` necesita un frontend funcional y rápido.
-- El operador pregunta "¿qué plantilla uso para mi cliente X?".
-- Necesitas estimar tiempo de integración de un frontend nuevo (4-8h con una plantilla vs 4-6 semanas desde cero).
-- Quieres comparar 2 plantillas candidatas (e.g., TailAdmin vs NextAdmin) antes de elegir.
-
-## NO activar este skill cuando:
-
-- El cliente quiere diseño 100% a medida (contratar diseñador; usar plantillas solo como referencia visual).
-- El vertical no está en el catálogo (futuro: marketplace multi-tenant, food delivery, servicios profesionales con calendario).
-- Necesitas PWA móvil nativa (React Native / Expo) — esto es web responsive.
-
-## Estructura del catálogo
+## The 3 layers
 
 ```
 opita-market-storefront-templates/
-├── templates/
-│   ├── admin-tailadmin/           POS tablet + backoffice (Sprint 1 ✅)
-│   ├── ecommerce-storefront/      B2C tienda online (Sprint 1 ✅)
-│   ├── booking-service/           Servicios con reserva (Sprint 2 🟡)
-│   └── landing-marketing/         Landing pages marketing (Sprint 2 🟡)
-├── docs/                          guías + cookbook
-└── scripts/                       tooling (repack, scaffold, validate)
+├── backend/            ← Layer 1: backend reference (contract surface)
+├── integration/        ← Layer 2: framework-agnostic TypeScript SDK
+├── frontend-visual/    ← Layer 3: visual templates (4 open-source options)
+├── SKILL.md            ← this file (root catalog)
+├── README.md
+├── LICENSE
+├── package.json
+├── docs/               ← cross-layer guides
+├── scripts/            ← repack, validate-skills, build-integration
+└── .github/workflows/  ← CI: repack.yml + integration-test.yml
 ```
 
-Cada subcarpeta `templates/<name>/` contiene:
-- `SKILL.md` — metadata estándar (este mismo formato) + integración con backend
-- `INTEGRATION.md` — pasos concretos para conectar al backend `opita-market-templates`
-- `repomix.txt` — código fuente completo comprimido (formato Repomix plain text)
-- `source/` — git submodule con el código real del repo MIT original
+| Layer | Folder | Type | Purpose | Use when |
+|-------|--------|------|---------|----------|
+| **1. Backend reference** | `backend/` | OpenAPI 3.1 + curl + docs | Document how to call the actual backend (which lives in `Opita-Code/opita-market-templates`) | AI agent needs to know the contract |
+| **2. Integration** | `integration/` | TypeScript npm package | Typed SDK with `Result<T,E>` + FSM helpers + i18n + currency + mock | Any TS/JS frontend needs to call the backend |
+| **3. Frontend visual** | `frontend-visual/<x>/` | Git submodule (open-source MIT) | Visual base + theme overrides per client | Choosing/customizing the look |
 
-## Decision tree (qué plantilla usar)
+## When to use this repo
+
+An AI agent should reach for this repo when:
+- Building a new storefront for a client (Pasiones, Peluquería XYZ, SaaS B2B, etc.)
+- Onboarding a new dev who needs to understand the architecture
+- Writing documentation that needs to reference the full stack
+- Creating tooling that spans all 3 layers (e.g. a Storybook story that uses the mock + a visual template + the integration SDK)
+
+An AI agent should **NOT** use this repo when:
+- It needs to *modify* the backend (use `Opita-Code/opita-market-templates` directly)
+- It needs to deploy a specific client app (use the client's own repo)
+- It needs to write production code that's tightly coupled to a single backend endpoint (use `integration/` + the specific visual template)
+
+## Architecture: hexagonal applied to frontend
 
 ```
-¿El cliente quiere…
-│
-├── POS terminal / admin / dashboards / RBAC / charts?
-│   └── admin-tailadmin ✅
-│       Stack: Next.js + Tailwind CSS (TailAdmin)
-│       MIT licensed, 2.5k stars, actively maintained
-│       Backend: consume /admin/* + /pos/* routes
-│
-├── Tienda online B2C con pickup + pago Wompi?
-│   └── ecommerce-storefront ✅
-│       Stack: Next.js + Tailwind + shadcn/ui (Epic-Design-Labs starter)
-│       "Pluggable checkout, i18n ready, fully accessible, SEO optimized"
-│       Backend: consume /catalog/* /cart/* /orders/* + Wompi widget iframe
-│
-├── Servicios con reserva (salon, spa, consultorio)?
-│   └── booking-service 🟡
-│       Stack: Next.js 15 + Tailwind v4 (HAAR Salon)
-│       Open-source, requires adaptation (Opencals SDK → custom backend)
-│       Backend: requiere Sprint 7+ vertical "services-with-bookings"
-│
-└── Landing page de marketing / anuncio?
-    └── landing-marketing 🟡
-        Stack: Next.js + Tailwind (ixartz starter)
-        MIT licensed, minimal starter
-        Backend: ninguno (estático puro, link al storefront o app)
+       ┌─────────────────────────────┐
+       │  Frontend Visual            │
+       │  (TailAdmin, Next-ecom, ...)│
+       └──────────────┬──────────────┘
+                      │ consumes
+       ┌──────────────▼──────────────┐
+       │  Integration (framework-    │
+       │  agnostic TS SDK)           │
+       └──────────────┬──────────────┘
+                      │ typed client over
+       ┌──────────────▼──────────────┐
+       │  Backend (Lambda + DDB)     │
+       │  (opita-market-templates)   │
+       └─────────────────────────────┘
 ```
 
-Ver [`docs/choosing-template.md`](docs/choosing-template.md) para la matriz completa con criterios de selección (license, stack, customization cost, integration time).
+The visual layer never knows about HTTP. The integration layer never knows about visual styling. The backend never knows about either.
 
-## Activation triggers (palabras clave que disparan este skill)
+## Quick start
 
-Cuando el operador dice:
-- "necesito un frontend para X cliente"
-- "qué plantilla me recomiendas para Y"
-- "TailAdmin vs [otra cosa]"
-- "storefront para tienda"
-- "POS para vendedor"
-- "admin panel"
-- "cliente quiere reservar"
-- "landing page de anuncio"
-- "integra esto con opita-market-templates"
+### For AI agents
 
-## Workflow de selección
+1. Read the root `SKILL.md` (this file) to discover the 3 layers
+2. Read each layer's `SKILL.md` to understand its purpose
+3. Decide which layer(s) you need for the task
+4. For frontend work: pick a visual template in `frontend-visual/`, then `npm install @opita/market-integration`
+5. For backend work: read `backend/api-spec.json` for the contract
+6. For integration work: read `integration/SKILL.md` + `integration/docs/usage.md`
 
-1. **Identificar el vertical del cliente** (e-commerce / admin-POS / servicios / marketing).
-2. **Leer SKILL.md de la plantilla candidata** (este formato + descripción).
-3. **Leer INTEGRATION.md** para estimar tiempo de integración contra el backend.
-4. **Si hay duda entre 2 plantillas**, leer ambas `repomix.txt` y comparar.
-5. **Clonar el submodule** y customizar in-place (`cd templates/<name>/source`).
-6. **Reempaquetar como zip o push a Vercel/similar** para deploy.
+### For human engineers
 
-## Backend integration
+```bash
+# 1. Clone with submodules
+git clone --recurse-submodules https://github.com/Opita-Code/opita-market-storefront-templates.git
+cd opita-market-storefront-templates
 
-Todas las plantillas consumen el backend `opita-market-templates` corriendo en Lambda. Endpoints principales por plantilla:
+# 2. Build the integration package
+cd integration && pnpm install && pnpm build && pnpm test && cd ..
 
-| Plantilla | Endpoints | Auth |
-|---|---|---|
-| admin-tailadmin | /admin/*, /pos/*, /audit, /reports/daily | OCAIS cookie (admin role) |
-| ecommerce-storefront | /catalog/*, /cart/*, /orders/*, /checkout/config (público) | OCAIS cookie (cliente role) |
-| booking-service | (futuro) /services/*, /bookings/* | OCAIS cookie |
-| landing-marketing | ninguno — link estático al storefront | n/a |
+# 3. Validate all SKILL.md files
+bash scripts/validate-skills.sh
 
-Ver [`docs/api-cookbook.md`](docs/api-cookbook.md) para detalles de cada endpoint.
+# 4. (Optional) Regenerate repomix.txt for visual templates
+bash scripts/repack.sh
+```
 
-## Multi-tenant branding
+## Version
 
-Cada plantilla lee del endpoint público `/tenants/:tenantId/checkout/config` (configurado en el backend Sprint 6) para:
-- Moneda (COP, USD, etc.)
-- Textos de consentimiento (Habeas Data Ley 1581/2012)
-- TTL del carrito
+- **v0.0.1** (current) — OCAIS workspace update with 3-layer architecture, framework-agnostic integration, 4 visual templates
 
-Ver [`docs/brand-customization.md`](docs/brand-customization.md) para temas tokens + Tailwind config.
+## What's shipped
 
-## Customization típico por plantilla
+| Component | Status | Lines / Size |
+|-----------|--------|--------------|
+| `backend/api-spec.json` | ✅ v6.0.0 | 20 paths, 15 schemas |
+| `backend/examples/` | ✅ 11 curl scripts | per endpoint family |
+| `backend/docs/` | ✅ 4 docs | auth, errors, rate-limits, fsm |
+| `integration/src/` | ✅ 8 modules | types, client, mock, fsm, webhooks, i18n, currency, text |
+| `integration/tests/` | ✅ 6 test files | vitest with FSM/i18n/currency/text/webhooks/mock |
+| `frontend-visual/admin-tailadmin` | ✅ submodule @ d3526b35 | TailAdmin/free-nextjs-admin-dashboard |
+| `frontend-visual/ecommerce-storefront` | ✅ submodule @ 8618a008 | Epic-Design-Labs/nextjs-ecommerce-starter |
+| `frontend-visual/booking-service` | ✅ submodule @ aa5747b75 | HAAR Salon (skeleton — Sprint 7+) |
+| `frontend-visual/landing-marketing` | ✅ submodule @ cd6694e6 | ixartz landing (skeleton — Sprint 7+) |
 
-| Tarea | Tiempo estimado |
-|---|---|
-| Branding (logo, colores, fuentes) | 2-4h |
-| i18n es-CO/en-US/pt-BR | 4-8h (ecommerce) |
-| Wompi widget integration | 2-4h (ecommerce) |
-| OCAIS cookie auth | 2-4h (todas) |
-| Deployment a Vercel + custom domain | 1-2h |
-| **Total ecommerce storefront → produccion** | **~1-2 días** |
-| **Total admin/POS → produccion** | **~1 día** |
+## License
 
-vs 4-6 semanas desde cero.
+MIT — see LICENSE file. Submodules retain their respective upstream licenses (TailAdmin MIT, Epic-Design-Labs open-source, HAAR open-source, ixartz MIT).
 
-## Reference
+## See also
 
-- Estructura del catálogo: este archivo + cada `templates/<name>/SKILL.md`
-- Estándar del formato: https://agentskills.io/home
-- Herramienta de compresión: https://github.com/yamadashy/repomix
-- Backend a integrar: [`opita-market-templates`](../opita-market-templates) — `docs/runbooks/` por endpoint
-- Runbooks operativos: cada plantilla tiene `INTEGRATION.md` con pasos concretos
+- `docs/oca-integration.md` — how OCAIS discovers and uses the 3 layers
+- `docs/choosing-template.md` — decision tree for picking the right visual template
+- `docs/api-cookbook.md` — recipes for common API workflows
+- `docs/agent-skills.md` — SKILL.md authoring guide
+- `backend/SKILL.md` — backend layer details
+- `integration/SKILL.md` — integration layer details
+- `frontend-visual/admin-tailadmin/SKILL.md` (etc.) — visual layer details
