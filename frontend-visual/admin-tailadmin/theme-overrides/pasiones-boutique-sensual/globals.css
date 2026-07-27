@@ -1,0 +1,73 @@
+/* =============================================================================
+ * Pasiones Boutique Sensual — admin-tailadmin globals.css (MÍNIMO)
+ * =============================================================================
+ * Tokens Pasiones para backoffice. NO reemplaza la globals.css de TailAdmin
+ * completa — solo añade los tokens de marca que se usan en componentes
+ * custom (login, POS, recibo).
+ *
+ * El operador copia este archivo sobre src/app/globals.css del TailAdmin
+ * base, o lo importa desde un módulo CSS.
+ * ============================================================================= */
+
+@layer base {
+  :root {
+    /* === PASIONES TOKENS (mismos que storefront) === */
+    --pasion-hot: #FF1493;
+    --pasion-hot-bright: #FF5BB0;
+    --pasion-cyan: #1FE0E0;
+    --pasion-cyan-bright: #5FF5F5;
+    --pasion-pink-pastel: #FCE4EC;
+    --pasion-cyan-pastel: #E0F7FA;
+    --pasion-gold: #D4AF37;
+    --pasion-wine: #6B1A3A;
+    --pasion-lips: #E91E63;
+
+    /* Texto admin */
+    --pasion-text-dark: #1A1A1A;
+    --pasion-text-muted: #6B4A5C;
+
+    /* === ADMIN-SPECIFIC === */
+    /* Status colors para el flujo POS */
+    --pasion-status-verified: #2E7D32;       /* verde oscuro — venta verificada +18 */
+    --pasion-status-pending-verification: #FF6F00; /* naranja — pendiente verificar edad */
+    --pasion-status-blocked: #C62828;         /* rojo — bloqueado, falta verificación */
+  }
+}
+
+/* === UTILIDADES PASIONES PARA ADMIN === */
+@layer utilities {
+  .btn-pasion-primary {
+    background-color: var(--pasion-hot);
+    color: white;
+    font-weight: 700;
+    padding: 0.625rem 1.25rem;
+    border-radius: 0.5rem;
+    transition: background-color 120ms;
+  }
+  .btn-pasion-primary:hover {
+    background-color: var(--pasion-hot-bright);
+  }
+  .btn-pasion-primary:disabled {
+    background-color: var(--pasion-status-blocked);
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .btn-pasion-secondary {
+    background-color: var(--pasion-cyan);
+    color: var(--pasion-text-dark);
+    font-weight: 700;
+    padding: 0.625rem 1.25rem;
+    border-radius: 0.5rem;
+  }
+
+  .text-pasion-hot { color: var(--pasion-hot); }
+  .text-pasion-wine { color: var(--pasion-wine); }
+  .text-pasion-cyan { color: var(--pasion-cyan); }
+  .text-pasion-gold { color: var(--pasion-gold); }
+
+  .bg-pasion-hot { background-color: var(--pasion-hot); }
+  .bg-pasion-wine { background-color: var(--pasion-wine); }
+  .bg-pasion-pink-pastel { background-color: var(--pasion-pink-pastel); }
+  .bg-pasion-cyan-pastel { background-color: var(--pasion-cyan-pastel); }
+}

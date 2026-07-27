@@ -1,0 +1,418 @@
+/* =============================================================================
+ * Pasiones Boutique Sensual — globals.css
+ * =============================================================================
+ * Theme override para ecommerce-storefront (Next.js + Tailwind v4 + shadcn).
+ *
+ * INSTALACIÓN: copia este archivo sobre src/app/globals.css del template
+ * base. Las fuentes Google Fonts (Pacifico, Anton, Montserrat) deben estar
+ * declaradas en src/app/layout.tsx — ver README.md para el snippet.
+ *
+ * Identidad de marca (extraída de logo + flyer, julio 2026):
+ *   - Wordmark hot pink (#FF1493) script
+ *   - Bunny logo cyan (#1FE0E0)
+ *   - Gold (#D4AF37) para líneas premium (Curvy)
+ *   - Modo oscuro vino profundo con glow magenta
+ * ============================================================================= */
+
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-rating: var(--rating);
+  --color-wishlist: var(--wishlist);
+  --color-sale: var(--sale);
+  --color-success: var(--success);
+
+  /* Pasiones — paleta extendida */
+  --color-pasion-hot: var(--pasion-hot);          /* #FF1493 — primary CTA */
+  --color-pasion-cyan: var(--pasion-cyan);        /* #1FE0E0 — bunny / accent */
+  --color-pasion-pink-pastel: var(--pasion-pink-pastel);  /* #FCE4EC — surfaces */
+  --color-pasion-cyan-pastel: var(--pasion-cyan-pastel);  /* #E0F7FA — surfaces */
+  --color-pasion-gold: var(--pasion-gold);        /* #D4AF37 — premium lines */
+  --color-pasion-wine: var(--pasion-wine);        /* #6B1A3A — dark mode bg */
+  --color-pasion-lips: var(--pasion-lips);        /* #E91E63 — lips icon */
+
+  --font-script: var(--font-script), "Pacifico", cursive;
+  --font-display: var(--font-display), "Anton", sans-serif;
+  --font-sans: var(--font-body), "Montserrat", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-display), "Anton", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* =============================================================================
+ * LIGHT MODE — Pasiones
+ * Identidad: superficies cálidas rosadas, hot pink dominante, cyan secundario
+ * ============================================================================= */
+:root {
+  /* Base surfaces — soft pink para background, blanco roto para cards */
+  --background: oklch(0.985 0.012 5);     /* #FDF7F8 — superficie principal */
+  --foreground: oklch(0.18 0 0);          /* #1A1A1A — texto principal */
+  --card: oklch(1 0 0);                  /* #FFFFFF — tarjetas blancas */
+  --card-foreground: oklch(0.18 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0 0);
+
+  /* PRIMARY = HOT PINK — wordmark, CTAs, wishlist activo, sale badge */
+  --primary: oklch(0.62 0.27 354);        /* #FF1493 — hot pink Pasiones */
+  --primary-foreground: oklch(0.985 0 0); /* blanco sobre hot pink */
+
+  /* SECONDARY = soft pink pastel — hover states, badges neutros */
+  --secondary: oklch(0.94 0.02 5);        /* #FCE4EC */
+  --secondary-foreground: oklch(0.30 0.05 5); /* #6B1A3A */
+
+  --muted: oklch(0.96 0.015 200);         /* #F4F7F8 — gris muy claro, tinte cyan */
+  --muted-foreground: oklch(0.50 0.02 5); /* #7A6770 — texto muted */
+
+  /* ACCENT = CYAN — links, focus rings, bunny highlights */
+  --accent: oklch(0.81 0.13 195);         /* #1FE0E0 */
+  --accent-foreground: oklch(0.18 0 0);   /* texto oscuro sobre cyan */
+
+  --destructive: oklch(0.55 0.22 25);     /* rojo para errores */
+  --border: oklch(0.92 0.015 5);          /* #EFE5E8 — borde rosado suave */
+  --input: oklch(0.94 0.02 5);            /* #FCE4EC — input fields rosados */
+  --ring: oklch(0.62 0.27 354);           /* focus ring = hot pink */
+
+  /* Charts — paleta coherente: pink, cyan, gold, vino, magenta */
+  --chart-1: oklch(0.62 0.27 354);        /* pink */
+  --chart-2: oklch(0.81 0.13 195);        /* cyan */
+  --chart-3: oklch(0.78 0.13 75);         /* gold */
+  --chart-4: oklch(0.34 0.13 5);          /* wine */
+  --chart-5: oklch(0.55 0.22 25);         /* destructive */
+
+  --radius: 0.5rem;
+
+  /* === Pasiones brand extensions === */
+  --pasion-hot: oklch(0.62 0.27 354);          /* #FF1493 */
+  --pasion-cyan: oklch(0.81 0.13 195);        /* #1FE0E0 */
+  --pasion-pink-pastel: oklch(0.94 0.02 5);   /* #FCE4EC */
+  --pasion-cyan-pastel: oklch(0.96 0.02 200); /* #E0F7FA */
+  --pasion-gold: oklch(0.78 0.13 75);         /* #D4AF37 */
+  --pasion-wine: oklch(0.34 0.13 5);          /* #6B1A3A */
+  --pasion-lips: oklch(0.55 0.24 354);         /* #E91E63 — lips icon */
+
+  /* Store accents — semantic colors */
+  --rating: oklch(0.78 0.13 75);          /* gold = rating stars */
+  --wishlist: oklch(0.62 0.27 354);       /* hot pink = wishlist active */
+  --sale: oklch(0.62 0.27 354);           /* hot pink = sale badge */
+  --success: oklch(0.62 0.18 155);        /* verde esmeralda */
+
+  /* Order status colors — coherentes con la paleta Pasiones */
+  --status-pending-bg: oklch(0.96 0.05 75);       /* gold pastel */
+  --status-pending-text: oklch(0.45 0.10 75);     /* gold oscuro */
+  --status-processing-bg: oklch(0.94 0.05 195);   /* cyan pastel */
+  --status-processing-text: oklch(0.40 0.10 195); /* cyan oscuro */
+  --status-shipped-bg: oklch(0.94 0.05 320);      /* pink pastel */
+  --status-shipped-text: oklch(0.40 0.15 354);    /* hot pink */
+  --status-delivered-bg: oklch(0.94 0.05 155);    /* verde pastel */
+  --status-delivered-text: oklch(0.40 0.10 155);  /* verde oscuro */
+  --status-cancelled-bg: oklch(0.94 0.02 0);     /* gris pastel */
+  --status-cancelled-text: oklch(0.40 0.05 0);
+  --status-refunded-bg: oklch(0.96 0.02 5);      /* pink pastel muy claro */
+  --status-refunded-text: oklch(0.40 0.05 354);
+
+  --sidebar: oklch(0.985 0.012 5);
+  --sidebar-foreground: oklch(0.18 0 0);
+  --sidebar-primary: oklch(0.62 0.27 354);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.94 0.02 5);
+  --sidebar-accent-foreground: oklch(0.30 0.05 5);
+  --sidebar-border: oklch(0.92 0.015 5);
+  --sidebar-ring: oklch(0.62 0.27 354);
+}
+
+/* =============================================================================
+ * DARK MODE — Pasiones
+ * Inspirado en la imagen 1 (interior oscuro del local con acento magenta).
+ * Vino profundo + hot pink con glow neón + cyan secundario.
+ * ============================================================================= */
+.dark {
+  --background: oklch(0.16 0.04 5);        /* #2A0F1A — vino muy oscuro */
+  --foreground: oklch(0.94 0.02 5);        /* #F5E8EC — texto claro rosado */
+  --card: oklch(0.22 0.04 5);              /* #3B1A2A — vino para cards */
+  --card-foreground: oklch(0.94 0.02 5);
+  --popover: oklch(0.22 0.04 5);
+  --popover-foreground: oklch(0.94 0.02 5);
+
+  /* Primary en dark mode brilla más — hot pink luminoso */
+  --primary: oklch(0.70 0.28 354);         /* #FF5BB0 — hot pink brillante */
+  --primary-foreground: oklch(0.16 0.04 5);
+
+  --secondary: oklch(0.30 0.05 5);
+  --secondary-foreground: oklch(0.94 0.02 5);
+
+  --muted: oklch(0.25 0.03 5);
+  --muted-foreground: oklch(0.75 0.02 5);
+
+  /* Accent cyan brilla en dark mode */
+  --accent: oklch(0.85 0.15 195);
+  --accent-foreground: oklch(0.16 0.04 5);
+
+  --destructive: oklch(0.65 0.24 25);
+  --border: oklch(0.30 0.03 5);
+  --input: oklch(0.28 0.04 5);
+  --ring: oklch(0.70 0.28 354);
+
+  --chart-1: oklch(0.70 0.28 354);
+  --chart-2: oklch(0.85 0.15 195);
+  --chart-3: oklch(0.82 0.13 75);
+  --chart-4: oklch(0.55 0.18 354);
+  --chart-5: oklch(0.65 0.24 25);
+
+  /* Pasiones brand extensions (mismos valores, lectura coherente) */
+  --pasion-hot: oklch(0.70 0.28 354);
+  --pasion-cyan: oklch(0.85 0.15 195);
+  --pasion-pink-pastel: oklch(0.30 0.06 5);
+  --pasion-cyan-pastel: oklch(0.30 0.04 195);
+  --pasion-gold: oklch(0.82 0.13 75);
+  --pasion-wine: oklch(0.50 0.13 5);
+  --pasion-lips: oklch(0.65 0.24 354);
+
+  /* Store accents dark */
+  --rating: oklch(0.82 0.13 75);
+  --wishlist: oklch(0.70 0.28 354);
+  --sale: oklch(0.70 0.28 354);
+  --success: oklch(0.70 0.18 155);
+
+  /* Order status dark */
+  --status-pending-bg: oklch(0.30 0.08 75);
+  --status-pending-text: oklch(0.85 0.13 75);
+  --status-processing-bg: oklch(0.30 0.06 195);
+  --status-processing-text: oklch(0.85 0.15 195);
+  --status-shipped-bg: oklch(0.30 0.08 354);
+  --status-shipped-text: oklch(0.85 0.20 354);
+  --status-delivered-bg: oklch(0.30 0.06 155);
+  --status-delivered-text: oklch(0.85 0.18 155);
+  --status-cancelled-bg: oklch(0.25 0.02 0);
+  --status-cancelled-text: oklch(0.75 0.02 0);
+  --status-refunded-bg: oklch(0.28 0.03 5);
+  --status-refunded-text: oklch(0.80 0.05 354);
+
+  --sidebar: oklch(0.20 0.04 5);
+  --sidebar-foreground: oklch(0.94 0.02 5);
+  --sidebar-primary: oklch(0.70 0.28 354);
+  --sidebar-primary-foreground: oklch(0.16 0.04 5);
+  --sidebar-accent: oklch(0.28 0.04 5);
+  --sidebar-accent-foreground: oklch(0.94 0.02 5);
+  --sidebar-border: oklch(0.30 0.03 5);
+  --sidebar-ring: oklch(0.70 0.28 354);
+}
+
+/* =============================================================================
+ * Base layer
+ * ============================================================================= */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  html {
+    @apply font-sans;
+  }
+  h1, h2, h3, h4 {
+    @apply font-heading tracking-tight;
+  }
+}
+
+/* =============================================================================
+ * Pasiones brand utilities — uso en componentes:
+ *   <button class="bg-pasion-hot text-pasion-pink-pastel hover:bg-pasion-cyan">
+ * ============================================================================= */
+@layer utilities {
+  .text-script {
+    font-family: var(--font-script);
+    letter-spacing: 0.01em;
+  }
+  .text-display {
+    font-family: var(--font-display);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+  .gradient-pasion-hot {
+    background-image: linear-gradient(135deg, var(--pasion-hot) 0%, var(--pasion-lips) 100%);
+  }
+  .gradient-pasion-cyan {
+    background-image: linear-gradient(135deg, var(--pasion-cyan) 0%, var(--pasion-cyan-pastel) 100%);
+  }
+  .gradient-pasion-night {
+    background-image: linear-gradient(135deg, var(--pasion-wine) 0%, var(--pasion-hot) 100%);
+  }
+  .glow-pasion {
+    box-shadow: 0 0 20px color-mix(in oklab, var(--pasion-hot) 35%, transparent);
+  }
+  .glow-pasion-cyan {
+    box-shadow: 0 0 20px color-mix(in oklab, var(--pasion-cyan) 35%, transparent);
+  }
+  /* Hairline divider que se ve en tienda física */
+  .divider-pasion {
+    background: linear-gradient(90deg, transparent 0%, var(--pasion-hot) 50%, transparent 100%);
+    height: 1px;
+  }
+}
+
+/* =============================================================================
+ * .blog-body — Prose styles for rich HTML content (CMS, descriptions, posts)
+ * ============================================================================= */
+.blog-body {
+  @apply text-base leading-7 text-foreground/90;
+}
+.blog-body > * + * {
+  @apply mt-5;
+}
+.blog-body h1 {
+  @apply mt-10 text-3xl font-bold tracking-tight text-foreground;
+}
+.blog-body h2 {
+  @apply mt-10 text-2xl font-bold tracking-tight text-foreground;
+}
+.blog-body h3 {
+  @apply mt-8 text-xl font-semibold tracking-tight text-foreground;
+}
+.blog-body h4 {
+  @apply mt-6 text-lg font-semibold tracking-tight text-foreground;
+}
+.blog-body p {
+  @apply leading-7;
+}
+.blog-body ul {
+  @apply list-disc space-y-2 pl-6;
+}
+.blog-body ol {
+  @apply list-decimal space-y-2 pl-6;
+}
+.blog-body li {
+  @apply leading-7;
+}
+.blog-body li > ul,
+.blog-body li > ol {
+  @apply mt-2;
+}
+.blog-body a {
+  @apply text-pasion-hot underline underline-offset-4 transition-colors hover:text-pasion-lips;
+}
+.blog-body blockquote {
+  @apply border-l-4 border-pasion-hot pl-6 italic text-muted-foreground;
+}
+.blog-body img {
+  @apply rounded-lg;
+}
+.blog-body hr {
+  @apply my-10 border-border;
+}
+.blog-body code {
+  @apply rounded-sm bg-muted px-1.5 py-0.5 font-mono text-[0.875em];
+}
+.blog-body pre {
+  @apply overflow-x-auto rounded-lg bg-pasion-wine p-4 text-sm text-pasion-pink-pastel;
+}
+.blog-body pre code {
+  @apply bg-transparent p-0 text-inherit;
+}
+.blog-body strong {
+  @apply font-semibold text-foreground;
+}
+.blog-body em {
+  @apply italic;
+}
+.blog-body table {
+  @apply w-full border-collapse text-sm;
+}
+.blog-body th,
+.blog-body td {
+  @apply border border-border px-3 py-2 text-left;
+}
+.blog-body th {
+  @apply bg-muted font-semibold;
+}
+
+/* =============================================================================
+ * Animaciones Pasiones — micro-interactions
+ * ============================================================================= */
+@keyframes pasion-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px color-mix(in oklab, var(--pasion-hot) 35%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 40px color-mix(in oklab, var(--pasion-hot) 60%, transparent);
+  }
+}
+.animate-pasion-glow {
+  animation: pasion-glow 2.4s ease-in-out infinite;
+}
+
+@keyframes pasion-pulse-cyan {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 6px color-mix(in oklab, var(--pasion-cyan) 40%, transparent));
+  }
+  50% {
+    transform: scale(1.04);
+    filter: drop-shadow(0 0 14px color-mix(in oklab, var(--pasion-cyan) 80%, transparent));
+  }
+}
+.animate-pasion-pulse-cyan {
+  animation: pasion-pulse-cyan 2s ease-in-out infinite;
+}
+
+/* =============================================================================
+ * Accessibility — focus visible siempre cyan (alto contraste)
+ * ============================================================================= */
+:focus-visible {
+  outline: 2px solid var(--pasion-cyan);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Pasiones Boutique Sensual — Open Graph image (1200x630)
+  Placeholder hasta tener el diseño final aprobado por el cliente.
+  Para producción, generar PNG/JPG real con foto + tipografía renderizada.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FCE4EC"/>
+      <stop offset="100%" stop-color="#E0F7FA"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Bunny logo central -->
+  <g transform="translate(540, 100)">
+    <ellipse cx="60" cy="120" rx="100" ry="60" fill="#1FE0E0"/>
+    <ellipse cx="20" cy="40" rx="20" ry="50" fill="#1FE0E0"/>
+    <ellipse cx="100" cy="40" rx="20" ry="50" fill="#1FE0E0"/>
+    <ellipse cx="20" cy="40" rx="8" ry="20" fill="#FFFFFF" opacity="0.85"/>
+    <ellipse cx="100" cy="40" rx="8" ry="20" fill="#FFFFFF" opacity="0.85"/>
+    <ellipse cx="38" cy="120" rx="10" ry="12" fill="#1A1A1A"/>
+    <ellipse cx="82" cy="120" rx="10" ry="12" fill="#1A1A1A"/>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="600" y="400" text-anchor="middle"
+    font-family="Pacifico, cursive" font-size="120" fill="#FF1493">
+    Pasiones
+  </text>
+
+  <!-- Tagline -->
+  <text x="600" y="460" text-anchor="middle"
+    font-family="Montserrat, sans-serif" font-size="22" fill="#1A1A1A"
+    letter-spacing="6" font-weight="500">
+    BOUTIQUE SENSUAL
+  </text>
+
+  <!-- Display line -->
+  <text x="600" y="540" text-anchor="middle"
+    font-family="Anton, sans-serif" font-size="56" fill="#6B1A3A"
+    letter-spacing="2">
+    LA SENSUALIDAD NO TIENE TALLA
+  </text>
+
+  <!-- Footer -->
+  <text x="600" y="595" text-anchor="middle"
+    font-family="Montserrat, sans-serif" font-size="18" fill="#1A1A1A">
+    Venta exclusiva a mayores de 18 años · Colombia
+  </text>
+</svg>

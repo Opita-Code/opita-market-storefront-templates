@@ -1,0 +1,170 @@
+/* =============================================================================
+ * Pasiones Boutique Sensual — tokens.css
+ * =============================================================================
+ * Tokens como CSS custom properties (sin Tailwind v4 @theme).
+ * Para usar desde CSS plano, server components o estilos inline.
+ *
+ * Equivalencias con globals.css (Tailwind v4):
+ *   globals.css expone los tokens vía @theme inline (--color-pasion-hot etc.).
+ *   tokens.css los expone directamente como :root custom properties.
+ *
+ * Si solo necesitas los tokens en CSS plano, importa este archivo;
+ * si necesitas utilities Tailwind (bg-pasion-hot, etc.), importa globals.css.
+ * ============================================================================= */
+
+:root {
+  /* === COLORES DE MARCA === */
+  --pasion-hot-hex: #FF1493;              /* wordmark "Pasiones", CTA principal, wishlist */
+  --pasion-cyan-hex: #1FE0E0;             /* bunny logo, links secundarios, focus */
+  --pasion-pink-pastel-hex: #FCE4EC;      /* surface decorativa, hover suave */
+  --pasion-cyan-pastel-hex: #E0F7FA;      /* highlight blocks, category cards */
+  --pasion-gold-hex: #D4AF37;             /* líneas premium (Curvy) */
+  --pasion-wine-hex: #6B1A3A;             /* dark mode background, headlines editorial */
+  --pasion-lips-hex: #E91E63;             /* lips icon detalle, hover fuerte */
+
+  /* === TEXTO === */
+  --pasion-text-dark-hex: #1A1A1A;
+  --pasion-text-muted-hex: #6B4A5C;       /* sobre fondos claros */
+  --pasion-text-light-hex: #F5E8EC;       /* sobre dark mode */
+
+  /* === TIPOGRAFÍA === */
+  --pasion-font-script: "Pacifico", "Brush Script MT", cursive;
+  --pasion-font-display: "Anton", "Bebas Neue", "Oswald", sans-serif;
+  --pasion-font-body: "Montserrat", "Inter", -apple-system, system-ui, sans-serif;
+
+  /* === ESPACIADO === */
+  --pasion-space-xs: 0.25rem;
+  --pasion-space-sm: 0.5rem;
+  --pasion-space-md: 1rem;
+  --pasion-space-lg: 1.5rem;
+  --pasion-space-xl: 2.5rem;
+  --pasion-space-2xl: 4rem;
+  --pasion-space-3xl: 6rem;
+
+  /* === RADIO === */
+  --pasion-radius-sm: 0.25rem;
+  --pasion-radius-md: 0.5rem;
+  --pasion-radius-lg: 1rem;
+  --pasion-radius-pill: 9999px;
+
+  /* === SHADOWS === */
+  --pasion-shadow-soft: 0 2px 8px rgba(255, 20, 147, 0.08);
+  --pasion-shadow-medium: 0 8px 24px rgba(255, 20, 147, 0.16);
+  --pasion-shadow-strong: 0 16px 48px rgba(255, 20, 147, 0.24);
+  --pasion-glow-cyan: 0 0 24px rgba(31, 224, 224, 0.4);
+
+  /* === BREAKPOINTS (referencia para JS) === */
+  /* mobile: 0–640px, tablet: 641–1024px, desktop: 1025–1440px, wide: 1441+ */
+}
+
+/* === DARK MODE === */
+.dark {
+  --pasion-text-dark-hex: #F5E8EC;
+  --pasion-text-muted-hex: #B89DAA;
+  --pasion-text-light-hex: #1A1A1A;
+
+  --pasion-shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --pasion-shadow-medium: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --pasion-shadow-strong: 0 16px 48px rgba(255, 20, 147, 0.3);
+}
+
+/* =============================================================================
+ * Clases utilitarias Pasiones — funcionan tanto con Tailwind como sin él
+ * ============================================================================= */
+
+/* === TIPOGRAFÍA === */
+.text-pasion-script {
+  font-family: var(--pasion-font-script);
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+}
+.text-pasion-display {
+  font-family: var(--pasion-font-display);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1.05;
+}
+.text-pasion-body {
+  font-family: var(--pasion-font-body);
+  letter-spacing: 0;
+  line-height: 1.6;
+}
+
+/* === BACKGROUNDS === */
+.bg-pasion-hot { background-color: var(--pasion-hot-hex); }
+.bg-pasion-cyan { background-color: var(--pasion-cyan-hex); }
+.bg-pasion-pink-pastel { background-color: var(--pasion-pink-pastel-hex); }
+.bg-pasion-cyan-pastel { background-color: var(--pasion-cyan-pastel-hex); }
+.bg-pasion-gold { background-color: var(--pasion-gold-hex); }
+.bg-pasion-wine { background-color: var(--pasion-wine-hex); }
+
+.text-pasion-hot { color: var(--pasion-hot-hex); }
+.text-pasion-cyan { color: var(--pasion-cyan-hex); }
+.text-pasion-gold { color: var(--pasion-gold-hex); }
+.text-pasion-wine { color: var(--pasion-wine-hex); }
+.text-pasion-lips { color: var(--pasion-lips-hex); }
+
+.border-pasion-hot { border-color: var(--pasion-hot-hex); }
+.border-pasion-cyan { border-color: var(--pasion-cyan-hex); }
+.border-pasion-gold { border-color: var(--pasion-gold-hex); }
+
+/* === GRADIENTES === */
+.gradient-pasion-sensual {
+  background-image: linear-gradient(135deg, var(--pasion-hot-hex) 0%, var(--pasion-lips-hex) 100%);
+}
+.gradient-pasion-cyan {
+  background-image: linear-gradient(135deg, var(--pasion-cyan-hex) 0%, var(--pasion-cyan-pastel-hex) 100%);
+}
+.gradient-pasion-night {
+  background-image: linear-gradient(135deg, var(--pasion-wine-hex) 0%, var(--pasion-hot-hex) 100%);
+}
+.gradient-pasion-curvy {
+  /* Línea premium Curvy — fondo cyan pastel con acento gold */
+  background-image: linear-gradient(135deg, var(--pasion-cyan-pastel-hex) 0%, var(--pasion-pink-pastel-hex) 100%);
+}
+
+/* === BADGES === */
+.badge-pasion {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--pasion-radius-pill);
+  font-family: var(--pasion-font-body);
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.badge-pasion-hot {
+  background-color: var(--pasion-hot-hex);
+  color: white;
+}
+.badge-pasion-cyan {
+  background-color: var(--pasion-cyan-hex);
+  color: var(--pasion-text-dark-hex);
+}
+.badge-pasion-gold {
+  background-color: var(--pasion-gold-hex);
+  color: var(--pasion-text-dark-hex);
+}
+
+/* === GLOW === */
+.glow-pasion {
+  box-shadow: 0 0 20px rgba(255, 20, 147, 0.35);
+}
+.glow-pasion-cyan {
+  box-shadow: 0 0 20px rgba(31, 224, 224, 0.4);
+}
+
+/* === DIVIDER === */
+.divider-pasion {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--pasion-hot-hex) 50%,
+    transparent 100%
+  );
+  height: 1px;
+  width: 100%;
+}
